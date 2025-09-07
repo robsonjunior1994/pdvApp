@@ -1,132 +1,150 @@
 ﻿@page "/"
+@using pdvApp.Helps
+@using pdvApp.Service.Interface
 @inject NavigationManager Navigation
+@inherits AuthenticatedComponentBase
 
-<PageTitle>Home - Sistema PDV</PageTitle>
-
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="row bg-primary text-white py-3 shadow">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1 class="h3 mb-0">
-                    <i class="bi bi-cash-coin me-2"></i>Sistema PDV
-                </h1>
-                <div>
-                    <span class="me-3">Olá, Usuário</span>
-                    <button class="btn btn-outline-light btn-sm" @onclick="Logout">
-                        <i class="bi bi-box-arrow-right"></i> Sair
-                    </button>
-                </div>
-            </div>
+@if (IsLoading)
+{
+    <div class="d-flex justify-content-center align-items-center" style="height: 50vh;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Carregando...</span>
         </div>
     </div>
-
-    <!-- Conteúdo Principal -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="text-center mb-5">
-                <h2 class="text-primary">Funcionalidades do Sistema</h2>
-                <p class="text-muted">Selecione uma opção para continuar</p>
-            </div>
-
-            <!-- Cards de Funcionalidades -->
-            <div class="row justify-content-center g-4">
-                <!-- Cadastrar Venda -->
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="card shadow-sm border-0 h-100 hover-card">
-                        <div class="card-body text-center p-4">
-                            <div class="icon-container bg-primary mb-3">
-                                <i class="bi bi-cart-check text-white"></i>
-                            </div>
-                            <h5 class="card-title text-primary">Cadastrar Venda</h5>
-                            <p class="card-text text-muted">Registrar novas vendas e emitir comprovantes</p>
-                            <button class="btn btn-primary w-100" @onclick="NavigateToVenda">
-                                <i class="bi bi-arrow-right-circle me-2"></i>Acessar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cadastrar Produto -->
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="card shadow-sm border-0 h-100 hover-card">
-                        <div class="card-body text-center p-4">
-                            <div class="icon-container bg-success mb-3">
-                                <i class="bi bi-box-seam text-white"></i>
-                            </div>
-                            <h5 class="card-title text-success">Cadastrar Produto</h5>
-                            <p class="card-text text-muted">Gerenciar produtos do catálogo e estoque</p>
-                            <button class="btn btn-success w-100" @onclick="NavigateToProduto">
-                                <i class="bi bi-arrow-right-circle me-2"></i>Acessar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cadastrar Cliente -->
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="card shadow-sm border-0 h-100 hover-card">
-                        <div class="card-body text-center p-4">
-                            <div class="icon-container bg-info mb-3">
-                                <i class="bi bi-people-fill text-white"></i>
-                            </div>
-                            <h5 class="card-title text-info">Cadastrar Cliente</h5>
-                            <p class="card-text text-muted">Cadastrar e gerenciar clientes do sistema</p>
-                            <button class="btn btn-info text-white w-100" @onclick="NavigateToCliente">
-                                <i class="bi bi-arrow-right-circle me-2"></i>Acessar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cadastrar Funcionário -->
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="card shadow-sm border-0 h-100 hover-card">
-                        <div class="card-body text-center p-4">
-                            <div class="icon-container bg-warning mb-3">
-                                <i class="bi bi-person-badge text-white"></i>
-                            </div>
-                            <h5 class="card-title text-warning">Cadastrar Funcionário</h5>
-                            <p class="card-text text-muted">Gerenciar equipe e permissoes de acesso</p>
-                            <button class="btn btn-warning w-100" @onclick="NavigateToFuncionario">
-                                <i class="bi bi-arrow-right-circle me-2"></i>Acessar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Dashboard Rápido -->
-            <div class="row mt-5">
+}
+else if (IsAuthenticated)
+{
+    <div>
+        <h1>Conteúdo Protegido</h1>
+        <p>Esta página só é visível para usuários autenticados.</p>
+        <!-- Seu conteúdo PRINCIPAL aqui -->
+        <PageTitle>Home - Sistema PDV</PageTitle>
+        <div class="container-fluid">
+            <!-- Header -->
+            <div class="row bg-primary text-white py-3 shadow">
                 <div class="col-12">
-                    <div class="card shadow-sm border-0">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0">Resumo do Dia</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-cash-coin me-2"></i>Sistema PDV
+                        </h1>
+                        <div>
+                            <span class="me-3">Olá, Usuário</span>
+                            <button class="btn btn-outline-light btn-sm" @onclick="Logout">
+                                <i class="bi bi-box-arrow-right"></i> Sair
+                            </button>
                         </div>
-                        <div class="card-body">
-                            <div class="row text-center">
-                                <div class="col-6 col-md-3">
-                                    <div class="p-3">
-                                        <h3 class="text-primary">15</h3>
-                                        <p class="text-muted mb-0">Vendas Hoje</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conteúdo Principal -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="text-center mb-5">
+                        <h2 class="text-primary">Funcionalidades do Sistema</h2>
+                        <p class="text-muted">Selecione uma opção para continuar</p>
+                    </div>
+
+                    <!-- Cards de Funcionalidades -->
+                    <div class="row justify-content-center g-4">
+                        <!-- Cadastrar Venda -->
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <div class="card shadow-sm border-0 h-100 hover-card">
+                                <div class="card-body text-center p-4">
+                                    <div class="icon-container bg-primary mb-3">
+                                        <i class="bi bi-cart-check text-white"></i>
                                     </div>
+                                    <h5 class="card-title text-primary">Cadastrar Venda</h5>
+                                    <p class="card-text text-muted">Registrar novas vendas e emitir comprovantes</p>
+                                    <button class="btn btn-primary w-100" @onclick="NavigateToVenda">
+                                        <i class="bi bi-arrow-right-circle me-2"></i>Acessar
+                                    </button>
                                 </div>
-                                <div class="col-6 col-md-3">
-                                    <div class="p-3">
-                                        <h3 class="text-success">R$ 2.540,00</h3>
-                                        <p class="text-muted mb-0">Total Vendido</p>
+                            </div>
+                        </div>
+
+                        <!-- Cadastrar Produto -->
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <div class="card shadow-sm border-0 h-100 hover-card">
+                                <div class="card-body text-center p-4">
+                                    <div class="icon-container bg-success mb-3">
+                                        <i class="bi bi-box-seam text-white"></i>
                                     </div>
+                                    <h5 class="card-title text-success">Cadastrar Produto</h5>
+                                    <p class="card-text text-muted">Gerenciar produtos do catálogo e estoque</p>
+                                    <button class="btn btn-success w-100" @onclick="NavigateToProduto">
+                                        <i class="bi bi-arrow-right-circle me-2"></i>Acessar
+                                    </button>
                                 </div>
-                                <div class="col-6 col-md-3">
-                                    <div class="p-3">
-                                        <h3 class="text-info">8</h3>
-                                        <p class="text-muted mb-0">Novos Clientes</p>
+                            </div>
+                        </div>
+
+                        <!-- Cadastrar Cliente -->
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <div class="card shadow-sm border-0 h-100 hover-card">
+                                <div class="card-body text-center p-4">
+                                    <div class="icon-container bg-info mb-3">
+                                        <i class="bi bi-people-fill text-white"></i>
                                     </div>
+                                    <h5 class="card-title text-info">Cadastrar Cliente</h5>
+                                    <p class="card-text text-muted">Cadastrar e gerenciar clientes do sistema</p>
+                                    <button class="btn btn-info text-white w-100" @onclick="NavigateToCliente">
+                                        <i class="bi bi-arrow-right-circle me-2"></i>Acessar
+                                    </button>
                                 </div>
-                                <div class="col-6 col-md-3">
-                                    <div class="p-3">
-                                        <h3 class="text-warning">5</h3>
-                                        <p class="text-muted mb-0">Produtos Críticos</p>
+                            </div>
+                        </div>
+
+                        <!-- Cadastrar Funcionário -->
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <div class="card shadow-sm border-0 h-100 hover-card">
+                                <div class="card-body text-center p-4">
+                                    <div class="icon-container bg-warning mb-3">
+                                        <i class="bi bi-person-badge text-white"></i>
+                                    </div>
+                                    <h5 class="card-title text-warning">Cadastrar Funcionário</h5>
+                                    <p class="card-text text-muted">Gerenciar equipe e permissoes de acesso</p>
+                                    <button class="btn btn-warning w-100" @onclick="NavigateToFuncionario">
+                                        <i class="bi bi-arrow-right-circle me-2"></i>Acessar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Rápido -->
+                    <div class="row mt-5">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">Resumo do Dia</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-6 col-md-3">
+                                            <div class="p-3">
+                                                <h3 class="text-primary">15</h3>
+                                                <p class="text-muted mb-0">Vendas Hoje</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="p-3">
+                                                <h3 class="text-success">R$ 2.540,00</h3>
+                                                <p class="text-muted mb-0">Total Vendido</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="p-3">
+                                                <h3 class="text-info">8</h3>
+                                                <p class="text-muted mb-0">Novos Clientes</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="p-3">
+                                                <h3 class="text-warning">5</h3>
+                                                <p class="text-muted mb-0">Produtos Críticos</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -135,10 +153,15 @@
                 </div>
             </div>
         </div>
+
     </div>
-</div>
+}
+
 
 @code {
+
+    [Inject] private IAuthService AuthService { get; set; }
+
     private void NavigateToVenda()
     {
         Navigation.NavigateTo("/vendas/cadastrar");
@@ -159,10 +182,10 @@
         Navigation.NavigateTo("/funcionarios/cadastrar");
     }
 
-    private void Logout()
+    private async void Logout()
     {
-        // Lógica para logout
-        Navigation.NavigateTo("/login");
+        await AuthService.RemoveTokenAsync();
+        Navigation.NavigateTo("/login", true);
     }
 }
 

@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
+using pdvApp.Service;
+using pdvApp.Service.Interface;
 
 
 namespace pdvApp
@@ -15,7 +17,7 @@ namespace pdvApp
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 });
 
-            // ADICIONE ESTA LINHA para configurar o HttpClient
+            builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddHttpClient();
 
             builder.Services.AddMauiBlazorWebView();
