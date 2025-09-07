@@ -1,0 +1,176 @@
+﻿@page "/login"
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Json
+@using System.Net.Http
+@using Microsoft.Extensions.DependencyInjection
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Login</PageTitle>
+
+<div class="container-fluid min-vh-100 bg-gradient">
+    <div class="row min-vh-100 justify-content-center align-items-center">
+        <div class="col-12 col-md-8 col-lg-6 col-xl-4">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="card-title text-primary">Bem-vindo</h2>
+                        <p class="text-muted">Faça login para continuar</p>
+                    </div>
+
+                    <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="alert alert-danger" />
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">E-mail</label>
+                            <InputText id="email" @bind-Value="loginModel.Email" class="form-control form-control-lg" />
+                            <ValidationMessage For="@(() => loginModel.Email)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Senha</label>
+                            <InputText id="password" type="password" @bind-Value="loginModel.Password"
+                                       class="form-control form-control-lg" />
+                            <ValidationMessage For="@(() => loginModel.Password)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <InputCheckbox id="remember" @bind-Value="loginModel.RememberMe" class="form-check-input" />
+                            <label class="form-check-label" for="remember">Lembrar-me</label>
+                        </div>
+
+                        <button type="submit" disabled="@isLoading" class="btn btn-primary btn-lg w-100">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Entrando...</span>
+                            }
+                            else
+                            {
+                                <span>Entrar</span>
+                            }
+                        </button>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger mt-3" role="alert">
+                                @errorMessage
+                            </div>
+                        }
+                    </EditForm>
+
+                    <div class="text-center mt-4">
+                        <a href="/forgot-password" class="text-decoration-none">Esqueci minha senha</a>
+                        <span class="mx-2">•</span>
+                        <a href="/cadastrarUsuario" class="text-decoration-none">Criar conta</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new LoginModel();
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            // Criar cliente HTTP
+            var httpClient = HttpClientFactory.CreateClient();
+            httpClient.BaseAddress = new Uri("https://sua-api.com/"); // Substitua pela URL da sua API
+
+            // Serializar dados de login
+            var json = JsonSerializer.Serialize(new
+            {
+                email = loginModel.Email,
+                password = loginModel.Password
+            });
+
+            // Fazer requisição para a API
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await httpClient.PostAsync("api/auth/login", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Processar resposta de sucesso
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var authResult = JsonSerializer.Deserialize<AuthResponse>(responseContent,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                // Aqui você salvaria o token de autenticação (em SecureStorage, por exemplo)
+                await SecureStorage.SetAsync("auth_token", authResult.Token);
+
+                // Redirecionar para a página principal
+                Navigation.NavigateTo("/", true);
+            }
+            else
+            {
+                // Processar erro da API
+                var errorContent = await response.Content.ReadAsStringAsync();
+
+                try
+                {
+                    var errorResponse = JsonSerializer.Deserialize<ApiErrorResponse>(errorContent,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    errorMessage = errorResponse?.Message ?? "Erro desconhecido ao fazer login";
+                }
+                catch
+                {
+                    errorMessage = $"Erro: {response.StatusCode} - {response.ReasonPhrase}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro de conexão: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Classes para modelagem de dados
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "O e-mail é obrigatório")]
+        [EmailAddress(ErrorMessage = "Informe um e-mail válido")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "A senha é obrigatória")]
+        [MinLength(6, ErrorMessage = "A senha deve ter pelo menos 6 caracteres")]
+        public string Password { get; set; } = string.Empty;
+
+        public bool RememberMe { get; set; }
+    }
+
+    public class AuthResponse
+    {
+        public string Token { get; set; } = string.Empty;
+        public DateTime Expiration { get; set; }
+        public string UserId { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+    }
+
+    public class ApiErrorResponse
+    {
+        public string Message { get; set; } = string.Empty;
+        public List<string> Errors { get; set; } = new List<string>();
+    }
+}
+
+<style>
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+</style>

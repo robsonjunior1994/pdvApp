@@ -1,0 +1,427 @@
+﻿@page "/vendas/cadastrar"
+@using System.ComponentModel.DataAnnotations
+@inject NavigationManager Navigation
+
+<PageTitle>Cadastrar Venda - Sistema PDV</PageTitle>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row bg-primary text-white py-3 shadow">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <button class="btn btn-outline-light btn-sm me-2" @onclick="VoltarParaHome">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                    <h1 class="h3 mb-0 d-inline-block">
+                        <i class="bi bi-cart-check me-2"></i>Cadastrar Venda
+                    </h1>
+                </div>
+                <div>
+                    <span class="me-3">@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <!-- Coluna de Produtos -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Adicionar Produtos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" placeholder="Buscar produto por código ou nome..."
+                                   @bind="termoBusca" @oninput="BuscarProdutos" />
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-secondary w-100" @onclick="LimparBusca">
+                                <i class="bi bi-x-circle"></i> Limpar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Produtos -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Produto</th>
+                                    <th>Estoque</th>
+                                    <th>Preço Unitário</th>
+                                    <th>Quantidade</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var produto in produtosFiltrados)
+                                {
+                                    <tr>
+                                        <td>@produto.Codigo</td>
+                                        <td>@produto.Nome</td>
+                                        <td>@produto.Estoque</td>
+                                        <td>R$ @produto.Preco.ToString("N2")</td>
+                                        <td style="width: 140px;">
+                                            <div class="input-group input-group-sm">
+                                                <button class="btn btn-outline-secondary" type="button" 
+                                                        @onclick="() => DecrementarQuantidade(produto)">
+                                                    -
+                                                </button>
+                                                <input type="number" class="form-control text-center" 
+                                                       @bind="produto.QuantidadeSelecionada" min="1" 
+                                                       max="@produto.Estoque" />
+                                                <button class="btn btn-outline-secondary" type="button" 
+                                                        @onclick="() => IncrementarQuantidade(produto)">
+                                                    +
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td style="width: 100px;">
+                                            <button class="btn btn-success btn-sm w-100" 
+                                                    @onclick="() => AdicionarAoCarrinho(produto)"
+                                                    disabled="@(produto.QuantidadeSelecionada <= 0 || produto.QuantidadeSelecionada > produto.Estoque)">
+                                                <i class="bi bi-cart-plus"></i> Add
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna do Carrinho e Pagamento -->
+        <div class="col-lg-4">
+            <!-- Carrinho de Compras -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Carrinho de Compras</h5>
+                        <span class="badge bg-primary">@carrinho.Itens.Count itens</span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    @if (carrinho.Itens.Count == 0)
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-cart-x display-4"></i>
+                            <p class="mt-2">Carrinho vazio</p>
+                            <small>Adicione produtos usando o botão "Add"</small>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Produto</th>
+                                        <th>Qtd</th>
+                                        <th>Preço</th>
+                                        <th>Total</th>
+                                        <th width="50"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in carrinho.Itens)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="badge bg-secondary me-2">@item.ProdutoCodigo</span>
+                                                    @item.ProdutoNome
+                                                </div>
+                                            </td>
+                                            <td>@item.Quantidade</td>
+                                            <td>R$ @item.PrecoUnitario.ToString("N2")</td>
+                                            <td>R$ @item.Total.ToString("N2")</td>
+                                            <td>
+                                                <button class="btn btn-outline-danger btn-sm" 
+                                                        @onclick="() => RemoverDoCarrinho(item)"
+                                                        title="Remover item">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="p-3 border-top">
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Subtotal:</strong>
+                                </div>
+                                <div class="col-6 text-end">
+                                    R$ @carrinho.Subtotal.ToString("N2")
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-2">
+                                <div class="col-6">
+                                    <strong>Desconto:</strong>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <input type="number" class="form-control form-control-sm d-inline-block" 
+                                           style="width: 100px;" @bind="carrinho.Desconto" 
+                                           min="0" max="@carrinho.Subtotal" step="0.01" />
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-2 fs-5">
+                                <div class="col-6">
+                                    <strong>Total:</strong>
+                                </div>
+                                <div class="col-6 text-end text-success">
+                                    <strong>R$ @carrinho.Total.ToString("N2")</strong>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Forma de Pagamento -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Pagamento</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Forma de Pagamento</label>
+                        <select class="form-select" @bind="formaPagamento">
+                            <option value="Dinheiro">Dinheiro</option>
+                            <option value="Cartão Débito">Cartão Débito</option>
+                            <option value="Cartão Crédito">Cartão Crédito</option>
+                            <option value="PIX">PIX</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Valor Recebido (R$)</label>
+                        <input type="number" class="form-control" @bind="valorRecebido" 
+                               min="@carrinho.Total" step="0.01" placeholder="0,00" />
+                    </div>
+
+                    @if (valorRecebido > 0 && valorRecebido >= carrinho.Total)
+                    {
+                        <div class="alert alert-info">
+                            <strong>Troco:</strong> R$ @((valorRecebido - carrinho.Total).ToString("N2"))
+                        </div>
+                    }
+                    else if (valorRecebido > 0 && valorRecebido < carrinho.Total)
+                    {
+                        <div class="alert alert-warning">
+                            <strong>Faltam:</strong> R$ @((carrinho.Total - valorRecebido).ToString("N2"))
+                        </div>
+                    }
+
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success btn-lg" @onclick="FinalizarVenda" 
+                                disabled="@(carrinho.Itens.Count == 0 || valorRecebido < carrinho.Total)">
+                            <i class="bi bi-check-circle"></i> Finalizar Venda
+                        </button>
+                        
+                        <button class="btn btn-outline-danger" @onclick="LimparCarrinho"
+                                disabled="@(carrinho.Itens.Count == 0)">
+                            <i class="bi bi-trash"></i> Limpar Carrinho
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Produto> produtos = new();
+    private List<Produto> produtosFiltrados = new();
+    private string termoBusca = string.Empty;
+    private Carrinho carrinho = new();
+    private string formaPagamento = "Dinheiro";
+    private decimal valorRecebido = 0;
+
+    protected override void OnInitialized()
+    {
+        CarregarProdutos();
+    }
+
+    private void CarregarProdutos()
+    {
+        // Produtos de exemplo - em uma aplicação real, viriam de um banco de dados
+        produtos = new List<Produto>
+        {
+            new Produto { Id = 1, Codigo = "001", Nome = "Notebook Dell", Preco = 2500.00m, Estoque = 10 },
+            new Produto { Id = 2, Codigo = "002", Nome = "Mouse Sem Fio", Preco = 45.90m, Estoque = 20 },
+            new Produto { Id = 3, Codigo = "003", Nome = "Teclado Mecânico", Preco = 199.90m, Estoque = 15 },
+            new Produto { Id = 4, Codigo = "004", Nome = "Monitor 24\"", Preco = 899.90m, Estoque = 8 },
+            new Produto { Id = 5, Codigo = "005", Nome = "Headphone Bluetooth", Preco = 159.90m, Estoque = 12 },
+            new Produto { Id = 6, Codigo = "006", Nome = "Webcam HD", Preco = 129.90m, Estoque = 18 },
+            new Produto { Id = 7, Codigo = "007", Nome = "Impressora Laser", Preco = 699.90m, Estoque = 5 },
+            new Produto { Id = 8, Codigo = "008", Nome = "SSD 500GB", Preco = 299.90m, Estoque = 25 }
+        };
+
+        produtosFiltrados = produtos;
+    }
+
+    private void BuscarProdutos()
+    {
+        if (string.IsNullOrWhiteSpace(termoBusca))
+        {
+            produtosFiltrados = produtos;
+        }
+        else
+        {
+            produtosFiltrados = produtos.Where(p =>
+                p.Nome.Contains(termoBusca, StringComparison.OrdinalIgnoreCase) ||
+                p.Codigo.Contains(termoBusca, StringComparison.OrdinalIgnoreCase)
+            ).ToList();
+        }
+    }
+
+    private void LimparBusca()
+    {
+        termoBusca = string.Empty;
+        produtosFiltrados = produtos;
+    }
+
+    private void IncrementarQuantidade(Produto produto)
+    {
+        if (produto.QuantidadeSelecionada < produto.Estoque)
+        {
+            produto.QuantidadeSelecionada++;
+        }
+    }
+
+    private void DecrementarQuantidade(Produto produto)
+    {
+        if (produto.QuantidadeSelecionada > 1)
+        {
+            produto.QuantidadeSelecionada--;
+        }
+    }
+
+    private void AdicionarAoCarrinho(Produto produto)
+    {
+        if (produto.QuantidadeSelecionada <= 0 || produto.QuantidadeSelecionada > produto.Estoque)
+            return;
+
+        var itemExistente = carrinho.Itens.FirstOrDefault(i => i.ProdutoId == produto.Id);
+        
+        if (itemExistente != null)
+        {
+            itemExistente.Quantidade += produto.QuantidadeSelecionada;
+        }
+        else
+        {
+            carrinho.Itens.Add(new ItemVenda
+            {
+                ProdutoId = produto.Id,
+                ProdutoCodigo = produto.Codigo,
+                ProdutoNome = produto.Nome,
+                Quantidade = produto.QuantidadeSelecionada,
+                PrecoUnitario = produto.Preco
+            });
+        }
+
+        produto.QuantidadeSelecionada = 1;
+        carrinho.CalcularTotais();
+    }
+
+    private void RemoverDoCarrinho(ItemVenda item)
+    {
+        carrinho.Itens.Remove(item);
+        carrinho.CalcularTotais();
+    }
+
+    private void LimparCarrinho()
+    {
+        carrinho = new Carrinho();
+        valorRecebido = 0;
+    }
+
+    private void FinalizarVenda()
+    {
+        if (carrinho.Itens.Count == 0 || valorRecebido < carrinho.Total)
+            return;
+
+        // Simular finalização da venda
+        // Em uma aplicação real, isso salvaria no banco de dados
+        Console.WriteLine($"Venda finalizada: Total R$ {carrinho.Total}, Pagamento: {formaPagamento}");
+
+        // Limpar carrinho e redirecionar
+        carrinho = new Carrinho();
+        valorRecebido = 0;
+        
+        // Mostrar mensagem de sucesso (em uma aplicação real)
+        Navigation.NavigateTo("/vendas/sucesso");
+    }
+
+    private void VoltarParaHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    // Classes de modelo
+    public class Produto
+    {
+        public int Id { get; set; }
+        public string Codigo { get; set; } = string.Empty;
+        public string Nome { get; set; } = string.Empty;
+        public decimal Preco { get; set; }
+        public int Estoque { get; set; }
+        public int QuantidadeSelecionada { get; set; } = 1;
+    }
+
+    public class ItemVenda
+    {
+        public int ProdutoId { get; set; }
+        public string ProdutoCodigo { get; set; } = string.Empty;
+        public string ProdutoNome { get; set; } = string.Empty;
+        public int Quantidade { get; set; }
+        public decimal PrecoUnitario { get; set; }
+        public decimal Total => Quantidade * PrecoUnitario;
+    }
+
+    public class Carrinho
+    {
+        public List<ItemVenda> Itens { get; set; } = new();
+        public decimal Subtotal { get; set; }
+        public decimal Desconto { get; set; }
+        public decimal Total => Subtotal - Desconto;
+
+        public void CalcularTotais()
+        {
+            Subtotal = Itens.Sum(i => i.Total);
+        }
+    }
+}
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+
+    .input-group {
+        max-width: 140px;
+    }
+
+    .bg-primary { background-color: #0d6efd !important; }
+    
+    .btn-success {
+        background-color: #198754;
+        border-color: #198754;
+    }
+    
+    .btn-success:hover {
+        background-color: #146c43;
+        border-color: #146c43;
+    }
+</style>

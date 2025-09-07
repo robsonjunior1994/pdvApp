@@ -1,0 +1,417 @@
+﻿@page "/clientes/cadastrar"
+@using System.ComponentModel.DataAnnotations
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Cadastrar Cliente - Sistema PDV</PageTitle>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row bg-primary text-white py-3 shadow">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <button class="btn btn-outline-light btn-sm me-2" @onclick="VoltarParaHome">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                    <h1 class="h3 mb-0 d-inline-block">
+                        <i class="bi bi-person-plus me-2"></i>Cadastrar Cliente
+                    </h1>
+                </div>
+                <div>
+                    <button class="btn btn-outline-light btn-sm me-2" @onclick="NovoCliente">
+                        <i class="bi bi-plus-circle"></i> Novo
+                    </button>
+                    <button class="btn btn-light btn-sm" @onclick="NavigateToListagem">
+                        <i class="bi bi-list-ul"></i> Lista
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4 justify-content-center">
+        <div class="col-12 col-lg-8 col-xl-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Dados do Cliente</h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="@cliente" OnValidSubmit="@HandleCadastro" class="needs-validation" novalidate>
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="alert alert-danger" />
+
+                        <!-- Dados Pessoais -->
+                        <h6 class="border-bottom pb-2 mb-3 text-primary">
+                            <i class="bi bi-person-vcard me-2"></i>Dados Pessoais
+                        </h6>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="nome" class="form-label">Nome Completo *</label>
+                                    <InputText id="nome" @bind-Value="cliente.Nome" 
+                                               class="form-control" placeholder="Nome completo do cliente" />
+                                    <ValidationMessage For="@(() => cliente.Nome)" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="cpf" class="form-label">CPF *</label>
+                                    <InputText id="cpf" @bind-Value="cliente.CPF" 
+                                               class="form-control" placeholder="000.000.000-00" />
+                                    <ValidationMessage For="@(() => cliente.CPF)" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">E-mail</label>
+                                    <InputText id="email" @bind-Value="cliente.Email" 
+                                               class="form-control" placeholder="cliente@email.com" />
+                                    <ValidationMessage For="@(() => cliente.Email)" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="telefone" class="form-label">Telefone *</label>
+                                    <InputText id="telefone" @bind-Value="cliente.Telefone" 
+                                               class="form-control" placeholder="(11) 99999-9999" />
+                                    <ValidationMessage For="@(() => cliente.Telefone)" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="dataNascimento" class="form-label">Data de Nascimento</label>
+                                    <input type="date" id="dataNascimento" @bind="cliente.DataNascimento" 
+                                           class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="genero" class="form-label">Gênero</label>
+                                    <select id="genero" value="@cliente.Genero" @onchange="(e) => cliente.Genero = e.Value?.ToString()" class="form-select">
+                                        <option value="">Selecione...</option>
+                                        <option value="M">Masculino</option>
+                                        <option value="F">Feminino</option>
+                                        <option value="O">Outro</option>
+                                        <option value="N">Prefiro não informar</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Tipo de Cliente</label>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="tipoCliente" 
+                                                   id="tipoPessoaFisica" checked="@(cliente.TipoPessoa == "F")" 
+                                                   @onchange="() => cliente.TipoPessoa = EnumTipoPessoa.Fisica" />
+                                            <label class="form-check-label" for="tipoPessoaFisica">Pessoa Física</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="tipoCliente" 
+                                                   id="tipoPessoaJuridica" checked="@(cliente.TipoPessoa == "J")" 
+                                                   @onchange="() => cliente.TipoPessoa = EnumTipoPessoa.Juridica" />
+                                            <label class="form-check-label" for="tipoPessoaJuridica">Pessoa Jurídica</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Dados de Endereço -->
+                        <h6 class="border-bottom pb-2 mb-3 text-primary mt-4">
+                            <i class="bi bi-geo-alt me-2"></i>Endereço
+                        </h6>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="cep" class="form-label">CEP</label>
+                                    <InputText id="cep" @bind-Value="cliente.CEP" 
+                                               class="form-control" placeholder="00000-000" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="logradouro" class="form-label">Logradouro</label>
+                                    <InputText id="logradouro" @bind-Value="cliente.Logradouro" 
+                                               class="form-control" placeholder="Rua, Avenida, etc." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="numero" class="form-label">Número</label>
+                                    <InputText id="numero" @bind-Value="cliente.Numero" 
+                                               class="form-control" placeholder="123" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="complemento" class="form-label">Complemento</label>
+                                    <InputText id="complemento" @bind-Value="cliente.Complemento" 
+                                               class="form-control" placeholder="Apto 101" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="bairro" class="form-label">Bairro</label>
+                                    <InputText id="bairro" @bind-Value="cliente.Bairro" 
+                                               class="form-control" placeholder="Centro" />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="cidade" class="form-label">Cidade</label>
+                                    <InputText id="cidade" @bind-Value="cliente.Cidade"
+                                               class="form-control" placeholder="São Paulo" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="estado" class="form-label">Estado (UF)</label>
+                                    <input id="estado" @bind="cliente.Estado"
+                                           class="form-control" placeholder="Ex: SP, RJ, MG"
+                                           maxlength="2" pattern="[A-Z]{2}"
+                                           title="Digite a sigla do estado com 2 letras maiúsculas" />
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="mb-3">
+                                    <label for="pais" class="form-label">País</label>
+                                    <input id="pais" class="form-control" value="Brasil" readonly />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dados Adicionais -->
+                        <h6 class="border-bottom pb-2 mb-3 text-primary mt-4">
+                            <i class="bi bi-info-circle me-2"></i>Informações Adicionais
+                        </h6>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Situação do Cliente</label>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="statusCliente" 
+                                                   id="statusAtivo" checked="@cliente.Ativo" 
+                                                   @onchange="() => cliente.Ativo = true" />
+                                            <label class="form-check-label" for="statusAtivo">Ativo</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="statusCliente" 
+                                                   id="statusInativo" checked="@(!cliente.Ativo)" 
+                                                   @onchange="() => cliente.Ativo = false" />
+                                            <label class="form-check-label" for="statusInativo">Inativo</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="observacoes" class="form-label">Observações</label>
+                                    <textarea id="observacoes" @bind="cliente.Observacoes" class="form-control" 
+                                              rows="2" placeholder="Informações adicionais..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <button type="button" class="btn btn-secondary me-md-2" @onclick="VoltarParaHome">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </button>
+                            <button type="submit" disabled="@isLoading" class="btn btn-primary">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Salvando...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    <span>Cadastrar Cliente</span>
+                                }
+                            </button>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(successMessage))
+                        {
+                            <div class="alert alert-success mt-3" role="alert">
+                                <i class="bi bi-check-circle-fill"></i> @successMessage
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger mt-3" role="alert">
+                                <i class="bi bi-exclamation-circle-fill"></i> @errorMessage
+                            </div>
+                        }
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private ClienteModel cliente = new ClienteModel();
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        cliente.Pais = "Brasil"; // Define o valor padrão para o país
+    }
+
+    private async Task HandleCadastro()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            // Validações adicionais
+            if (cliente.TipoPessoa == "J" && string.IsNullOrEmpty(cliente.CNPJ))
+            {
+                errorMessage = "CNPJ é obrigatório para Pessoa Jurídica";
+                isLoading = false;
+                return;
+            }
+
+            // Simular chamada à API
+            await Task.Delay(1000);
+
+            // Simulação de sucesso
+            successMessage = "Cliente cadastrado com sucesso!";
+            await Task.Delay(1500);
+            NovoCliente();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NovoCliente()
+    {
+        cliente = new ClienteModel();
+        cliente.Pais = "Brasil"; // Reinicializa o valor do país
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+    }
+
+    private void VoltarParaHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private void NavigateToListagem()
+    {
+        Navigation.NavigateTo("/clientes");
+    }
+
+
+    public class EnumTipoPessoa
+    {
+        public const string Fisica = "F";
+        public const string Juridica = "J";
+    }
+
+    // Classes de modelo
+    public class ClienteModel
+    {
+        public int Id { get; set; }
+
+        [Required(ErrorMessage = "O nome completo é obrigatório")]
+        [StringLength(100, ErrorMessage = "O nome deve ter no máximo 100 caracteres")]
+        public string Nome { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O CPF é obrigatório")]
+        [StringLength(14, ErrorMessage = "CPF inválido")]
+        public string CPF { get; set; } = string.Empty;
+
+        public string CNPJ { get; set; } = string.Empty;
+
+        [EmailAddress(ErrorMessage = "Informe um e-mail válido")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O telefone é obrigatório")]
+        public string Telefone { get; set; } = string.Empty;
+
+        public DateTime? DataNascimento { get; set; }
+        public string Genero { get; set; } = string.Empty;
+        public string TipoPessoa { get; set; } = "F"; // F=Física, J=Jurídica
+
+        // Endereço
+        public string CEP { get; set; } = string.Empty;
+        public string Logradouro { get; set; } = string.Empty;
+        public string Numero { get; set; } = string.Empty;
+        public string Complemento { get; set; } = string.Empty;
+        public string Bairro { get; set; } = string.Empty;
+        public string Cidade { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+        public string Pais { get; set; } = string.Empty;
+
+        // Controle
+        public bool Ativo { get; set; } = true;
+        public string Observacoes { get; set; } = string.Empty;
+        public DateTime DataCadastro { get; set; } = DateTime.Now;
+    }
+}
+
+<style>
+    .bg-primary { background-color: #0d6efd !important; }
+    
+    .form-label {
+        font-weight: 500;
+        color: #495057;
+    }
+    
+    .card {
+        border: none;
+        border-radius: 0.5rem;
+    }
+    
+    .card-header {
+        border-bottom: 1px solid #dee2e6;
+        font-weight: 600;
+    }
+    
+    .btn-primary {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        padding: 0.5rem 1.5rem;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+        border-color: #0a58ca;
+    }
+    
+    .border-bottom {
+        border-color: #0d6efd !important;
+    }
+</style>

@@ -1,0 +1,569 @@
+﻿@page "/funcionarios/cadastrar"
+@using System.ComponentModel.DataAnnotations
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Cadastrar Funcionário - Sistema PDV</PageTitle>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row bg-primary text-white py-3 shadow">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <button class="btn btn-outline-light btn-sm me-2" @onclick="VoltarParaHome">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                    <h1 class="h3 mb-0 d-inline-block">
+                        <i class="bi bi-person-badge me-2"></i>Cadastrar Funcionário
+                    </h1>
+                </div>
+                <div>
+                    <button class="btn btn-outline-light btn-sm me-2" @onclick="NovoFuncionario">
+                        <i class="bi bi-plus-circle"></i> Novo
+                    </button>
+                    <button class="btn btn-light btn-sm" @onclick="NavigateToListagem">
+                        <i class="bi bi-list-ul"></i> Lista
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4 justify-content-center">
+        <div class="col-12 col-lg-8 col-xl-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Dados do Funcionário</h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="@funcionario" OnValidSubmit="@HandleCadastro" class="needs-validation" novalidate>
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="alert alert-danger" />
+
+                        <!-- Dados Pessoais -->
+                        <h6 class="border-bottom pb-2 mb-3 text-primary">
+                            <i class="bi bi-person-vcard me-2"></i>Dados Pessoais
+                        </h6>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="nome" class="form-label">Nome Completo *</label>
+                                    <InputText id="nome" @bind-Value="funcionario.Nome" 
+                                               class="form-control" placeholder="Nome completo do funcionário" />
+                                    <ValidationMessage For="@(() => funcionario.Nome)" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="cpf" class="form-label">CPF *</label>
+                                    <InputText id="cpf" @bind-Value="funcionario.CPF" 
+                                               class="form-control" placeholder="000.000.000-00" />
+                                    <ValidationMessage For="@(() => funcionario.CPF)" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">E-mail *</label>
+                                    <InputText id="email" @bind-Value="funcionario.Email" 
+                                               class="form-control" placeholder="funcionario@empresa.com" />
+                                    <ValidationMessage For="@(() => funcionario.Email)" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="telefone" class="form-label">Telefone *</label>
+                                    <InputText id="telefone" @bind-Value="funcionario.Telefone" 
+                                               class="form-control" placeholder="(11) 99999-9999" />
+                                    <ValidationMessage For="@(() => funcionario.Telefone)" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="dataNascimento" class="form-label">Data de Nascimento *</label>
+                                    <input type="date" id="dataNascimento" @bind="funcionario.DataNascimento" 
+                                           class="form-control" />
+                                    <ValidationMessage For="@(() => funcionario.DataNascimento)" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="genero" class="form-label">Gênero *</label>
+                                    <select id="genero" @bind="funcionario.Genero" class="form-select">
+                                        <option value="">Selecione...</option>
+                                        <option value="M">Masculino</option>
+                                        <option value="F">Feminino</option>
+                                        <option value="O">Outro</option>
+                                        <option value="N">Prefiro não informar</option>
+                                    </select>
+                                    <ValidationMessage For="@(() => funcionario.Genero)" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="estadoCivil" class="form-label">Estado Civil</label>
+                                    <select id="estadoCivil" @bind="funcionario.EstadoCivil" class="form-select">
+                                        <option value="">Selecione...</option>
+                                        <option value="Solteiro">Solteiro(a)</option>
+                                        <option value="Casado">Casado(a)</option>
+                                        <option value="Divorciado">Divorciado(a)</option>
+                                        <option value="Viuvo">Viúvo(a)</option>
+                                        <option value="UniaoEstavel">União Estável</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dados de Endereço -->
+                        <h6 class="border-bottom pb-2 mb-3 text-primary mt-4">
+                            <i class="bi bi-geo-alt me-2"></i>Endereço
+                        </h6>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="cep" class="form-label">CEP</label>
+                                    <InputText id="cep" @bind-Value="funcionario.CEP" 
+                                               class="form-control" placeholder="00000-000" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="logradouro" class="form-label">Logradouro</label>
+                                    <InputText id="logradouro" @bind-Value="funcionario.Logradouro" 
+                                               class="form-control" placeholder="Rua, Avenida, etc." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="numero" class="form-label">Número</label>
+                                    <InputText id="numero" @bind-Value="funcionario.Numero" 
+                                               class="form-control" placeholder="123" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="complemento" class="form-label">Complemento</label>
+                                    <InputText id="complemento" @bind-Value="funcionario.Complemento" 
+                                               class="form-control" placeholder="Apto 101" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="bairro" class="form-label">Bairro</label>
+                                    <InputText id="bairro" @bind-Value="funcionario.Bairro" 
+                                               class="form-control" placeholder="Centro" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="cidade" class="form-label">Cidade</label>
+                                    <InputText id="cidade" @bind-Value="funcionario.Cidade" 
+                                               class="form-control" placeholder="São Paulo" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="estado" class="form-label">Estado</label>
+                                    <select id="estado" @bind="funcionario.Estado" class="form-select">
+                                        <option value="">Selecione...</option>
+                                        <option value="AC">Acre</option>
+                                        <option value="AL">Alagoas</option>
+                                        <option value="AP">Amapá</option>
+                                        <option value="AM">Amazonas</option>
+                                        <option value="BA">Bahia</option>
+                                        <option value="CE">Ceará</option>
+                                        <option value="DF">Distrito Federal</option>
+                                        <option value="ES">Espírito Santo</option>
+                                        <option value="GO">Goiás</option>
+                                        <option value="MA">Maranhão</option>
+                                        <option value="MT">Mato Grosso</option>
+                                        <option value="MS">Mato Grosso do Sul</option>
+                                        <option value="MG">Minas Gerais</option>
+                                        <option value="PA">Pará</option>
+                                        <option value="PB">Paraíba</option>
+                                        <option value="PR">Paraná</option>
+                                        <option value="PE">Pernambuco</option>
+                                        <option value="PI">Piauí</option>
+                                        <option value="RJ">Rio de Janeiro</option>
+                                        <option value="RN">Rio Grande do Norte</option>
+                                        <option value="RS">Rio Grande do Sul</option>
+                                        <option value="RO">Rondônia</option>
+                                        <option value="RR">Roraima</option>
+                                        <option value="SC">Santa Catarina</option>
+                                        <option value="SP">São Paulo</option>
+                                        <option value="SE">Sergipe</option>
+                                        <option value="TO">Tocantins</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="mb-3">
+                                    <label for="pais" class="form-label">País</label>
+                                    <InputText id="pais" @bind-Value="funcionario.Pais"
+                                               class="form-control" readonly />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dados Profissionais -->
+                        <h6 class="border-bottom pb-2 mb-3 text-primary mt-4">
+                            <i class="bi bi-briefcase me-2"></i>Dados Profissionais
+                        </h6>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="cargo" class="form-label">Cargo *</label>
+                                    <select id="cargo" @bind="funcionario.Cargo" class="form-select">
+                                        <option value="">Selecione...</option>
+                                        <option value="Vendedor">Vendedor</option>
+                                        <option value="Caixa">Caixa</option>
+                                        <option value="Gerente">Gerente</option>
+                                        <option value="Supervisor">Supervisor</option>
+                                        <option value="Atendente">Atendente</option>
+                                        <option value="Estoquista">Estoquista</option>
+                                        <option value="Administrativo">Administrativo</option>
+                                    </select>
+                                    <ValidationMessage For="@(() => funcionario.Cargo)" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="departamento" class="form-label">Departamento</label>
+                                    <InputText id="departamento" @bind-Value="funcionario.Departamento" 
+                                               class="form-control" placeholder="Vendas, Administrativo, etc." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="salario" class="form-label">Salário *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">R$</span>
+                                        <input type="number" id="salario" @bind="funcionario.Salario" 
+                                               class="form-control" step="0.01" min="0" />
+                                    </div>
+                                    <ValidationMessage For="@(() => funcionario.Salario)" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="dataAdmissao" class="form-label">Data de Admissão *</label>
+                                    <input type="date" id="dataAdmissao" @bind="funcionario.DataAdmissao" 
+                                           class="form-control" />
+                                    <ValidationMessage For="@(() => funcionario.DataAdmissao)" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="tipoContrato" class="form-label">Tipo de Contrato</label>
+                                    <select id="tipoContrato" @bind="funcionario.TipoContrato" class="form-select">
+                                        <option value="CLT">CLT</option>
+                                        <option value="PJ">Pessoa Jurídica</option>
+                                        <option value="Estagio">Estágio</option>
+                                        <option value="Temporario">Temporário</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dados de Acesso -->
+                        <h6 class="border-bottom pb-2 mb-3 text-primary mt-4">
+                            <i class="bi bi-shield-lock me-2"></i>Dados de Acesso
+                        </h6>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="usuario" class="form-label">Usuário *</label>
+                                    <InputText id="usuario" @bind-Value="funcionario.Usuario" 
+                                               class="form-control" placeholder="Nome de usuário para login" />
+                                    <ValidationMessage For="@(() => funcionario.Usuario)" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="senha" class="form-label">Senha *</label>
+                                    <InputText id="senha" type="password" @bind-Value="funcionario.Senha" 
+                                               class="form-control" placeholder="Mínimo 6 caracteres" />
+                                    <ValidationMessage For="@(() => funcionario.Senha)" />
+                                    <div class="form-text">A senha deve ter pelo menos 6 caracteres</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="nivelAcesso" class="form-label">Nível de Acesso *</label>
+                                    <select id="nivelAcesso" @bind="funcionario.NivelAcesso" class="form-select">
+                                        <option value="">Selecione...</option>
+                                        <option value="Operador">Operador</option>
+                                        <option value="Supervisor">Supervisor</option>
+                                        <option value="Gerente">Gerente</option>
+                                        <option value="Administrador">Administrador</option>
+                                    </select>
+                                    <ValidationMessage For="@(() => funcionario.NivelAcesso)" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Status do Funcionário</label>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="statusFuncionario"
+                                                   id="statusAtivo" checked="@funcionario.Ativo"
+                                                   @onchange="@(() => funcionario.Ativo = true)" />
+                                            <label class="form-check-label" for="statusAtivo">Ativo</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="statusFuncionario"
+                                                   id="statusInativo" checked="@(!funcionario.Ativo)"
+                                                   @onchange="@(() => funcionario.Ativo = false)" />
+                                            <label class="form-check-label" for="statusInativo">Inativo</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <button type="button" class="btn btn-secondary me-md-2" @onclick="VoltarParaHome">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </button>
+                            <button type="submit" disabled="@isLoading" class="btn btn-primary">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Salvando...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    <span>Cadastrar Funcionário</span>
+                                }
+                            </button>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(successMessage))
+                        {
+                            <div class="alert alert-success mt-3" role="alert">
+                                <i class="bi bi-check-circle-fill"></i> @successMessage
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger mt-3" role="alert">
+                                <i class="bi bi-exclamation-circle-fill"></i> @errorMessage
+                            </div>
+                        }
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private FuncionarioModel funcionario = new FuncionarioModel();
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    private async Task HandleCadastro()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            // Validações adicionais
+            if (funcionario.Salario <= 0)
+            {
+                errorMessage = "O salário deve ser maior que zero";
+                isLoading = false;
+                return;
+            }
+
+            if (funcionario.DataAdmissao > DateTime.Today)
+            {
+                errorMessage = "A data de admissão não pode ser futura";
+                isLoading = false;
+                return;
+            }
+
+            // Simular chamada à API
+            await Task.Delay(1000);
+
+            // Em uma aplicação real:
+            /*
+            var httpClient = HttpClientFactory.CreateClient();
+            var json = JsonSerializer.Serialize(funcionario);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await httpClient.PostAsync("api/funcionarios", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = "Funcionário cadastrado com sucesso!";
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/funcionarios");
+            }
+            else
+            {
+                errorMessage = "Erro ao cadastrar funcionário";
+            }
+            */
+
+            // Simulação de sucesso
+            successMessage = "Funcionário cadastrado com sucesso!";
+            await Task.Delay(1500);
+            NovoFuncionario();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NovoFuncionario()
+    {
+        funcionario = new FuncionarioModel();
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+    }
+
+    private void VoltarParaHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private void NavigateToListagem()
+    {
+        Navigation.NavigateTo("/funcionarios");
+    }
+
+    // Classes de modelo
+    public class FuncionarioModel
+    {
+        public int Id { get; set; }
+
+        [Required(ErrorMessage = "O nome completo é obrigatório")]
+        [StringLength(100, ErrorMessage = "O nome deve ter no máximo 100 caracteres")]
+        public string Nome { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O CPF é obrigatório")]
+        [StringLength(14, ErrorMessage = "CPF inválido")]
+        public string CPF { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O e-mail é obrigatório")]
+        [EmailAddress(ErrorMessage = "Informe um e-mail válido")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O telefone é obrigatório")]
+        public string Telefone { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "A data de nascimento é obrigatória")]
+        public DateTime? DataNascimento { get; set; }
+
+        [Required(ErrorMessage = "O gênero é obrigatório")]
+        public string Genero { get; set; } = string.Empty;
+
+        public string EstadoCivil { get; set; } = string.Empty;
+
+        // Endereço
+        public string CEP { get; set; } = string.Empty;
+        public string Logradouro { get; set; } = string.Empty;
+        public string Numero { get; set; } = string.Empty;
+        public string Complemento { get; set; } = string.Empty;
+        public string Bairro { get; set; } = string.Empty;
+        public string Cidade { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+        public string Pais { get; set; } = "Brasil";
+
+        // Dados Profissionais
+        [Required(ErrorMessage = "O cargo é obrigatório")]
+        public string Cargo { get; set; } = string.Empty;
+
+        public string Departamento { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O salário é obrigatório")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "O salário deve ser maior que zero")]
+        public decimal Salario { get; set; }
+
+        [Required(ErrorMessage = "A data de admissão é obrigatória")]
+        public DateTime? DataAdmissao { get; set; } = DateTime.Today;
+
+        public string TipoContrato { get; set; } = "CLT";
+
+        // Dados de Acesso
+        [Required(ErrorMessage = "O usuário é obrigatório")]
+        public string Usuario { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "A senha é obrigatória")]
+        [MinLength(6, ErrorMessage = "A senha deve ter pelo menos 6 caracteres")]
+        public string Senha { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O nível de acesso é obrigatório")]
+        public string NivelAcesso { get; set; } = string.Empty;
+
+        // Controle
+        public bool Ativo { get; set; } = true;
+        public DateTime DataCadastro { get; set; } = DateTime.Now;
+    }
+}
+
+<style>
+    .bg-primary { background-color: #0d6efd !important; }
+    
+    .form-label {
+        font-weight: 500;
+        color: #495057;
+    }
+    
+    .card {
+        border: none;
+        border-radius: 0.5rem;
+    }
+    
+    .card-header {
+        border-bottom: 1px solid #dee2e6;
+        font-weight: 600;
+    }
+    
+    .btn-primary {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        padding: 0.5rem 1.5rem;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+        border-color: #0a58ca;
+    }
+    
+    .border-bottom {
+        border-color: #0d6efd !important;
+    }
+</style>

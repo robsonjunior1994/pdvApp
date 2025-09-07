@@ -1,0 +1,384 @@
+﻿@page "/produtos/cadastrar"
+@using System.ComponentModel.DataAnnotations
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Cadastrar Produto - Sistema PDV</PageTitle>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row bg-primary text-white py-3 shadow">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <button class="btn btn-outline-light btn-sm me-2" @onclick="VoltarParaHome">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                    <h1 class="h3 mb-0 d-inline-block">
+                        <i class="bi bi-box-seam me-2"></i>Cadastrar Produto
+                    </h1>
+                </div>
+                <div>
+                    <button class="btn btn-outline-light btn-sm me-2" @onclick="NovoProduto">
+                        <i class="bi bi-plus-circle"></i> Novo
+                    </button>
+                    <button class="btn btn-light btn-sm" @onclick="NavigateToListagem">
+                        <i class="bi bi-list-ul"></i> Lista
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4 justify-content-center">
+        <div class="col-12 col-lg-8 col-xl-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Dados do Produto</h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="@produto" OnValidSubmit="@HandleCadastro" class="needs-validation" novalidate>
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="alert alert-danger" />
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="codigo" class="form-label">Código do Produto *</label>
+                                    <InputText id="codigo" @bind-Value="produto.Codigo" 
+                                               class="form-control" placeholder="Ex: 001, P1001" />
+                                    <ValidationMessage For="@(() => produto.Codigo)" />
+                                    <div class="form-text">Código único para identificar o produto</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="codigoBarras" class="form-label">Código de Barras (EAN)</label>
+                                    <InputText id="codigoBarras" @bind-Value="produto.CodigoBarras" 
+                                               class="form-control" placeholder="7891234567890" />
+                                    <ValidationMessage For="@(() => produto.CodigoBarras)" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="nome" class="form-label">Nome do Produto *</label>
+                            <InputText id="nome" @bind-Value="produto.Nome" 
+                                       class="form-control" placeholder="Nome completo do produto" />
+                            <ValidationMessage For="@(() => produto.Nome)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="descricao" class="form-label">Descrição</label>
+                            <textarea id="descricao" @bind="produto.Descricao" class="form-control" 
+                                      rows="3" placeholder="Descrição detalhada do produto..."></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="precoCusto" class="form-label">Preço de Custo *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">R$</span>
+                                        <input type="number" id="precoCusto" @bind="produto.PrecoCusto" 
+                                               class="form-control" step="0.01" min="0" />
+                                    </div>
+                                    <ValidationMessage For="@(() => produto.PrecoCusto)" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="precoVenda" class="form-label">Preço de Venda *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">R$</span>
+                                        <input type="number" id="precoVenda" @bind="produto.PrecoVenda" 
+                                               class="form-control" step="0.01" min="0" />
+                                    </div>
+                                    <ValidationMessage For="@(() => produto.PrecoVenda)" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Margem de Lucro</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" 
+                                               value="@CalculoMargemLucro.ToString("N2")" readonly />
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    <div class="form-text">Calculada automaticamente</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="estoque" class="form-label">Estoque Inicial *</label>
+                                    <input type="number" id="estoque" @bind="produto.Estoque" 
+                                           class="form-control" min="0" />
+                                    <ValidationMessage For="@(() => produto.Estoque)" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="estoqueMinimo" class="form-label">Estoque Mínimo</label>
+                                    <input type="number" id="estoqueMinimo" @bind="produto.EstoqueMinimo" 
+                                           class="form-control" min="0" />
+                                    <div class="form-text">Alerta quando atingir este nível</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="unidadeMedida" class="form-label">Unidade de Medida</label>
+                                    <select id="unidadeMedida" @bind="produto.UnidadeMedida" class="form-select">
+                                        <option value="">Selecione...</option>
+                                        <option value="UN">Unidade (UN)</option>
+                                        <option value="PC">Peça (PC)</option>
+                                        <option value="KG">Quilograma (KG)</option>
+                                        <option value="GR">Grama (GR)</option>
+                                        <option value="LT">Litro (LT)</option>
+                                        <option value="ML">Mililitro (ML)</option>
+                                        <option value="M">Metro (M)</option>
+                                        <option value="CM">Centímetro (CM)</option>
+                                        <option value="CX">Caixa (CX)</option>
+                                        <option value="PCT">Pacote (PCT)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="categoria" class="form-label">Categoria</label>
+                                    <InputText id="categoria" @bind-Value="produto.Categoria" 
+                                               class="form-control" placeholder="Ex: Eletrônicos, Informática" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fornecedor" class="form-label">Fornecedor</label>
+                                    <InputText id="fornecedor" @bind-Value="produto.Fornecedor" 
+                                               class="form-control" placeholder="Nome do fornecedor" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" id="ativo" @bind="produto.Ativo" class="form-check-input" />
+                                <label class="form-check-label" for="ativo">
+                                    Produto ativo para venda
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" id="controlaEstoque" @bind="produto.ControlaEstoque" class="form-check-input" />
+                                <label class="form-check-label" for="controlaEstoque">
+                                    Controlar estoque deste produto
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-secondary me-md-2" @onclick="VoltarParaHome">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </button>
+                            <button type="submit" disabled="@isLoading" class="btn btn-primary">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Salvando...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    <span>Cadastrar Produto</span>
+                                }
+                            </button>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(successMessage))
+                        {
+                            <div class="alert alert-success mt-3" role="alert">
+                                <i class="bi bi-check-circle-fill"></i> @successMessage
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger mt-3" role="alert">
+                                <i class="bi bi-exclamation-circle-fill"></i> @errorMessage
+                            </div>
+                        }
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private ProdutoModel produto = new ProdutoModel();
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    private decimal CalculoMargemLucro
+    {
+        get
+        {
+            if (produto.PrecoCusto <= 0 || produto.PrecoVenda <= produto.PrecoCusto)
+                return 0;
+            
+            return ((produto.PrecoVenda - produto.PrecoCusto) / produto.PrecoCusto) * 100;
+        }
+    }
+
+    private async Task HandleCadastro()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            // Validar se preço de venda é maior que preço de custo
+            if (produto.PrecoVenda <= produto.PrecoCusto)
+            {
+                errorMessage = "O preço de venda deve ser maior que o preço de custo";
+                isLoading = false;
+                return;
+            }
+
+            // Simular chamada à API
+            await Task.Delay(1000); // Simula o tempo de requisição
+
+            // Em uma aplicação real, faríamos:
+            /*
+            var httpClient = HttpClientFactory.CreateClient();
+            var json = JsonSerializer.Serialize(produto);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await httpClient.PostAsync("api/produtos", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = "Produto cadastrado com sucesso!";
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/produtos");
+            }
+            else
+            {
+                errorMessage = "Erro ao cadastrar produto";
+            }
+            */
+
+            // Simulação de sucesso
+            successMessage = "Produto cadastrado com sucesso!";
+            await Task.Delay(1500);
+            NovoProduto(); // Limpa o formulário para novo cadastro
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NovoProduto()
+    {
+        produto = new ProdutoModel();
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+    }
+
+    private void VoltarParaHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private void NavigateToListagem()
+    {
+        Navigation.NavigateTo("/produtos");
+    }
+
+    // Classes de modelo
+    public class ProdutoModel
+    {
+        public int Id { get; set; }
+
+        [Required(ErrorMessage = "O código do produto é obrigatório")]
+        [StringLength(20, ErrorMessage = "O código deve ter no máximo 20 caracteres")]
+        public string Codigo { get; set; } = string.Empty;
+
+        [StringLength(13, ErrorMessage = "O código de barras deve ter 13 caracteres", MinimumLength = 13)]
+        public string CodigoBarras { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O nome do produto é obrigatório")]
+        [StringLength(100, ErrorMessage = "O nome deve ter no máximo 100 caracteres")]
+        public string Nome { get; set; } = string.Empty;
+
+        [StringLength(500, ErrorMessage = "A descrição deve ter no máximo 500 caracteres")]
+        public string Descricao { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O preço de custo é obrigatório")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "O preço de custo deve ser maior que zero")]
+        public decimal PrecoCusto { get; set; }
+
+        [Required(ErrorMessage = "O preço de venda é obrigatório")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "O preço de venda deve ser maior que zero")]
+        public decimal PrecoVenda { get; set; }
+
+        [Required(ErrorMessage = "O estoque inicial é obrigatório")]
+        [Range(0, int.MaxValue, ErrorMessage = "O estoque não pode ser negativo")]
+        public int Estoque { get; set; }
+
+        [Range(0, int.MaxValue, ErrorMessage = "O estoque mínimo não pode ser negativo")]
+        public int EstoqueMinimo { get; set; } = 5;
+
+        public string UnidadeMedida { get; set; } = "UN";
+        public string Categoria { get; set; } = string.Empty;
+        public string Fornecedor { get; set; } = string.Empty;
+        public bool Ativo { get; set; } = true;
+        public bool ControlaEstoque { get; set; } = true;
+    }
+}
+
+<style>
+    .bg-primary { background-color: #0d6efd !important; }
+    
+    .form-label {
+        font-weight: 500;
+        color: #495057;
+    }
+    
+    .input-group-text {
+        background-color: #f8f9fa;
+    }
+    
+    .card {
+        border: none;
+        border-radius: 0.5rem;
+    }
+    
+    .card-header {
+        border-bottom: 1px solid #dee2e6;
+        font-weight: 600;
+    }
+    
+    .btn-primary {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        padding: 0.5rem 1.5rem;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+        border-color: #0a58ca;
+    }
+</style>

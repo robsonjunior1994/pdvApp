@@ -1,0 +1,243 @@
+﻿@page "/cadastrarUsuario"
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Json
+@using System.Net.Http
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Cadastro</PageTitle>
+
+<div class="container-fluid min-vh-100 bg-gradient">
+    <div class="row min-vh-100 justify-content-center align-items-center">
+        <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="card-title text-primary">Criar Conta</h2>
+                        <p class="text-muted">Preencha os dados para se cadastrar</p>
+                    </div>
+
+                    <EditForm Model="@registerModel" OnValidSubmit="@HandleRegister">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="alert alert-danger" />
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="firstName" class="form-label">Nome</label>
+                                    <InputText id="firstName" @bind-Value="registerModel.FirstName"
+                                               class="form-control form-control-lg" placeholder="Seu nome" />
+                                    <ValidationMessage For="@(() => registerModel.FirstName)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="lastName" class="form-label">Sobrenome</label>
+                                    <InputText id="lastName" @bind-Value="registerModel.LastName"
+                                               class="form-control form-control-lg" placeholder="Seu sobrenome" />
+                                    <ValidationMessage For="@(() => registerModel.LastName)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">E-mail</label>
+                            <InputText id="email" @bind-Value="registerModel.Email"
+                                       class="form-control form-control-lg" placeholder="seu@email.com" />
+                            <ValidationMessage For="@(() => registerModel.Email)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Telefone</label>
+                            <InputText id="phone" @bind-Value="registerModel.Phone"
+                                       class="form-control form-control-lg" placeholder="(11) 99999-9999" />
+                            <ValidationMessage For="@(() => registerModel.Phone)" class="text-danger" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Senha</label>
+                                    <InputText id="password" type="password" @bind-Value="registerModel.Password"
+                                               class="form-control form-control-lg" placeholder="Mínimo 6 caracteres" />
+                                    <ValidationMessage For="@(() => registerModel.Password)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="confirmPassword" class="form-label">Confirmar Senha</label>
+                                    <InputText id="confirmPassword" type="password" @bind-Value="registerModel.ConfirmPassword"
+                                               class="form-control form-control-lg" placeholder="Digite novamente" />
+                                    <ValidationMessage For="@(() => registerModel.ConfirmPassword)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <InputCheckbox id="terms" @bind-Value="registerModel.AcceptTerms" class="form-check-input" />
+                            <label class="form-check-label" for="terms">
+                                Aceito os <a href="/terms" class="text-decoration-none">termos de uso</a> e
+                                <a href="/privacy" class="text-decoration-none">política de privacidade</a>
+                            </label>
+                            <ValidationMessage For="@(() => registerModel.AcceptTerms)" class="text-danger" />
+                        </div>
+
+                        <button type="submit" disabled="@isLoading" class="btn btn-primary btn-lg w-100">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Criando conta...</span>
+                            }
+                            else
+                            {
+                                <span>Criar Conta</span>
+                            }
+                        </button>
+
+                        @if (!string.IsNullOrEmpty(successMessage))
+                        {
+                            <div class="alert alert-success mt-3" role="alert">
+                                @successMessage
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger mt-3" role="alert">
+                                @errorMessage
+                            </div>
+                        }
+                    </EditForm>
+
+                    <div class="text-center mt-4">
+                        <p>
+                            Já tem uma conta?
+                            <a href="/login" class="text-decoration-none fw-bold">Faça login</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterModel registerModel = new RegisterModel();
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    private async Task HandleRegister()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            // Validar se as senhas coincidem
+            if (registerModel.Password != registerModel.ConfirmPassword)
+            {
+                errorMessage = "As senhas não coincidem";
+                isLoading = false;
+                return;
+            }
+
+            // Criar cliente HTTP
+            var httpClient = HttpClientFactory.CreateClient();
+            httpClient.BaseAddress = new Uri("https://sua-api.com/"); // Substitua pela URL da sua API
+
+            // Serializar dados de cadastro
+            var json = JsonSerializer.Serialize(new
+            {
+                firstName = registerModel.FirstName,
+                lastName = registerModel.LastName,
+                email = registerModel.Email,
+                phone = registerModel.Phone,
+                password = registerModel.Password
+            });
+
+            // Fazer requisição para a API
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await httpClient.PostAsync("api/auth/register", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Processar resposta de sucesso
+                successMessage = "Conta criada com sucesso! Redirecionando para login...";
+
+                // Aguardar um pouco e redirecionar para login
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/login", true);
+            }
+            else
+            {
+                // Processar erro da API
+                var errorContent = await response.Content.ReadAsStringAsync();
+
+                try
+                {
+                    var errorResponse = JsonSerializer.Deserialize<ApiErrorResponse>(errorContent,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    errorMessage = errorResponse?.Message ?? "Erro desconhecido ao criar conta";
+                }
+                catch
+                {
+                    errorMessage = $"Erro: {response.StatusCode} - {response.ReasonPhrase}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro de conexão: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Classes para modelagem de dados
+    public class RegisterModel
+    {
+        [Required(ErrorMessage = "O nome é obrigatório")]
+        [StringLength(50, ErrorMessage = "O nome deve ter no máximo 50 caracteres")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O sobrenome é obrigatório")]
+        [StringLength(50, ErrorMessage = "O sobrenome deve ter no máximo 50 caracteres")]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O e-mail é obrigatório")]
+        [EmailAddress(ErrorMessage = "Informe um e-mail válido")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O telefone é obrigatório")]
+        [Phone(ErrorMessage = "Informe um telefone válido")]
+        public string Phone { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "A senha é obrigatória")]
+        [MinLength(6, ErrorMessage = "A senha deve ter pelo menos 6 caracteres")]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Confirme sua senha")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+
+        [Range(typeof(bool), "true", "true", ErrorMessage = "Você deve aceitar os termos de uso")]
+        public bool AcceptTerms { get; set; }
+    }
+
+    public class ApiErrorResponse
+    {
+        public string Message { get; set; } = string.Empty;
+        public List<string> Errors { get; set; } = new List<string>();
+    }
+}
+
+<style>
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+</style>
