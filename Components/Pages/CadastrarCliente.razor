@@ -1,5 +1,6 @@
 ﻿@page "/clientes/cadastrar"
 @using System.ComponentModel.DataAnnotations
+@using pdvApp.Helps
 @inject NavigationManager Navigation
 @inject IHttpClientFactory HttpClientFactory
 
@@ -112,13 +113,13 @@
                                         <div class="form-check form-check-inline">
                                             <input class="form-check-input" type="radio" name="tipoCliente" 
                                                    id="tipoPessoaFisica" checked="@(cliente.TipoPessoa == "F")" 
-                                                   @onchange="() => cliente.TipoPessoa = EnumTipoPessoa.Fisica" />
+                                                   @onchange="() => cliente.TipoPessoa = Enumeradores.F.ToString()" />
                                             <label class="form-check-label" for="tipoPessoaFisica">Pessoa Física</label>
                                         </div>
                                         <div class="form-check form-check-inline">
                                             <input class="form-check-input" type="radio" name="tipoCliente" 
                                                    id="tipoPessoaJuridica" checked="@(cliente.TipoPessoa == "J")" 
-                                                   @onchange="() => cliente.TipoPessoa = EnumTipoPessoa.Juridica" />
+                                                   @onchange="() => cliente.TipoPessoa = Enumeradores.J.ToString()" />
                                             <label class="form-check-label" for="tipoPessoaJuridica">Pessoa Jurídica</label>
                                         </div>
                                     </div>
@@ -331,13 +332,6 @@
     private void NavigateToListagem()
     {
         Navigation.NavigateTo("/clientes");
-    }
-
-
-    public class EnumTipoPessoa
-    {
-        public const string Fisica = "F";
-        public const string Juridica = "J";
     }
 
     // Classes de modelo

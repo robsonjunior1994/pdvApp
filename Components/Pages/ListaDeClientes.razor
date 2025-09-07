@@ -1,9 +1,9 @@
-﻿@page "/produtos"
+﻿@page "/clientes"
 @using pdvApp.Helps
 @inject NavigationManager Navigation
 @inject IHttpClientFactory HttpClientFactory
 
-<PageTitle>Lista de Produtos - Sistema PDV</PageTitle>
+<PageTitle>Lista de Clientes - Sistema PDV</PageTitle>
 
 <div class="container-fluid">
     <!-- Header -->
@@ -15,12 +15,12 @@
                         <i class="bi bi-arrow-left"></i> Voltar
                     </button>
                     <h1 class="h3 mb-0 d-inline-block">
-                        <i class="bi bi-box-seam me-2"></i>Lista de Produtos
+                        <i class="bi bi-people me-2"></i>Lista de Clientes
                     </h1>
                 </div>
                 <div>
                     <button class="btn btn-outline-light btn-sm me-2" @onclick="NavigateToCadastro">
-                        <i class="bi bi-plus-circle"></i> Novo Produto
+                        <i class="bi bi-person-plus"></i> Novo Cliente
                     </button>
                     <div class="btn-group">
                         <button class="btn btn-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -29,6 +29,9 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="#" @onclick="() => FiltrarPorStatus(Enumeradores.Ativos.ToString())">Ativos</a></li>
                             <li><a class="dropdown-item" href="#" @onclick="() => FiltrarPorStatus(Enumeradores.Inativos.ToString())">Inativos</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" @onclick="() => FiltrarPorTipo(Enumeradores.F.ToString())">Pessoa Física</a></li>
+                            <li><a class="dropdown-item" href="#" @onclick="() => FiltrarPorTipo(Enumeradores.J.ToString())">Pessoa Jurídica</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="#" @onclick="LimparFiltros">Todos</a></li>
                         </ul>
@@ -46,28 +49,27 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="input-group">
-                                <input type="text" class="form-control" placeholder="Buscar por nome ou código..."
-                                       @bind="termoBusca" @oninput="BuscarProdutos" />
+                                <input type="text" class="form-control" placeholder="Buscar por nome, CPF, email..." 
+                                       @bind="termoBusca" @oninput="BuscarClientes" />
                                 <button class="btn btn-outline-secondary" type="button" @onclick="LimparBusca">
                                     <i class="bi bi-x"></i>
                                 </button>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <select class="form-select" @bind="filtroCategoria">
-                                <option value="">Todas categorias</option>
-                                @foreach (var categoria in categorias)
+                            <select class="form-select" @bind="filtroCidade">
+                                <option value="">Todas cidades</option>
+                                @foreach (var cidade in cidades)
                                 {
-                                    <option value="@categoria">@categoria</option>
+                                    <option value="@cidade">@cidade</option>
                                 }
                             </select>
                         </div>
                         <div class="col-md-3">
                             <select class="form-select" @bind="ordenacao">
                                 <option value="nome">Ordenar por Nome</option>
-                                <option value="codigo">Ordenar por Código</option>
-                                <option value="preco">Ordenar por Preço</option>
-                                <option value="estoque">Ordenar por Estoque</option>
+                                <option value="dataCadastro">Ordenar por Data Cadastro</option>
+                                <option value="cidade">Ordenar por Cidade</option>
                             </select>
                         </div>
                     </div>
@@ -84,26 +86,26 @@
                     <div class="row text-center">
                         <div class="col-6 col-md-3">
                             <div class="p-3">
-                                <h3 class="text-primary mb-0">@produtos.Count</h3>
-                                <p class="text-muted mb-0">Total de Produtos</p>
+                                <h3 class="text-primary mb-0">@clientes.Count</h3>
+                                <p class="text-muted mb-0">Total de Clientes</p>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
                             <div class="p-3">
-                                <h3 class="text-success mb-0">@produtos.Count(p => p.Ativo)</h3>
-                                <p class="text-muted mb-0">Produtos Ativos</p>
+                                <h3 class="text-success mb-0">@clientes.Count(c => c.Ativo)</h3>
+                                <p class="text-muted mb-0">Clientes Ativos</p>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
                             <div class="p-3">
-                                <h3 class="text-warning mb-0">@produtos.Count(p => p.Estoque <= p.EstoqueMinimo)</h3>
-                                <p class="text-muted mb-0">Estoque Baixo</p>
+                                <h3 class="text-info mb-0">@clientes.Count(c => c.TipoPessoa == "F")</h3>
+                                <p class="text-muted mb-0">Pessoa Física</p>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
                             <div class="p-3">
-                                <h3 class="text-danger mb-0">@produtos.Count(p => !p.Ativo)</h3>
-                                <p class="text-muted mb-0">Produtos Inativos</p>
+                                <h3 class="text-warning mb-0">@clientes.Count(c => c.TipoPessoa == "J")</h3>
+                                <p class="text-muted mb-0">Pessoa Jurídica</p>
                             </div>
                         </div>
                     </div>
@@ -112,19 +114,19 @@
         </div>
     </div>
 
-    <!-- Tabela de Produtos -->
+    <!-- Tabela de Clientes -->
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm">
                 <div class="card-body p-0">
-                    @if (produtosFiltrados.Count == 0)
+                    @if (clientesFiltrados.Count == 0)
                     {
                         <div class="text-center py-5">
-                            <i class="bi bi-box-seam display-4 text-muted"></i>
-                            <h5 class="text-muted mt-3">Nenhum produto encontrado</h5>
-                            <p class="text-muted">Tente ajustar os filtros ou cadastre um novo produto.</p>
+                            <i class="bi bi-people display-4 text-muted"></i>
+                            <h5 class="text-muted mt-3">Nenhum cliente encontrado</h5>
+                            <p class="text-muted">Tente ajustar os filtros ou cadastre um novo cliente.</p>
                             <button class="btn btn-primary mt-2" @onclick="NavigateToCadastro">
-                                <i class="bi bi-plus-circle"></i> Cadastrar Primeiro Produto
+                                <i class="bi bi-person-plus"></i> Cadastrar Primeiro Cliente
                             </button>
                         </div>
                     }
@@ -134,75 +136,70 @@
                             <table class="table table-hover table-striped mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Código</th>
-                                        <th>Produto</th>
-                                        <th>Categoria</th>
-                                        <th>Preço</th>
-                                        <th>Estoque</th>
+                                        <th>Cliente</th>
+                                        <th>Contato</th>
+                                        <th>Localização</th>
+                                        <th>Tipo</th>
                                         <th>Status</th>
+                                        <th>Data Cadastro</th>
                                         <th width="120" class="text-center">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var produto in produtosFiltrados)
+                                    @foreach (var cliente in clientesFiltrados)
                                     {
-                                        <tr class="@(produto.Estoque <= produto.EstoqueMinimo ? "table-warning" : "")">
-                                            <td>
-                                                <span class="badge bg-secondary">@produto.Codigo</span>
-                                            </td>
+                                        <tr>
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <div class="flex-shrink-0">
-                                                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center"
+                                                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" 
                                                              style="width: 40px; height: 40px;">
-                                                            <i class="bi bi-box text-muted"></i>
+                                                            <i class="bi bi-person text-muted"></i>
                                                         </div>
                                                     </div>
                                                     <div class="flex-grow-1 ms-3">
-                                                        <h6 class="mb-0">@produto.Nome</h6>
-                                                        <small class="text-muted">
-                                                            @if (!string.IsNullOrEmpty(produto.Descricao))
-                                                            {
-                                                                @(produto.Descricao.Length > 50 ? produto.Descricao.Substring(0, 50) + "..." : produto.Descricao)
-                                                            }
-                                                        </small>
+                                                        <h6 class="mb-0">@cliente.Nome</h6>
+                                                        <small class="text-muted">@FormatarDocumento(cliente)</small>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>@produto.Categoria</td>
                                             <td>
-                                                <strong class="text-success">R$ @produto.PrecoVenda.ToString("N2")</strong>
-                                                <br>
-                                                <small class="text-muted">Custo: R$ @produto.PrecoCusto.ToString("N2")</small>
-                                            </td>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <span class="@GetEstoqueClass(produto)">@produto.Estoque</span>
-                                                    @if (produto.Estoque <= produto.EstoqueMinimo)
-                                                    {
-                                                        <span class="badge bg-warning ms-2" title="Estoque mínimo: @produto.EstoqueMinimo">
-                                                            <i class="bi bi-exclamation-triangle"></i>
-                                                        </span>
-                                                    }
+                                                <div>
+                                                    <div>@cliente.Email</div>
+                                                    <small class="text-muted">@cliente.Telefone</small>
                                                 </div>
                                             </td>
                                             <td>
-                                                <span class="badge @(produto.Ativo ? "bg-success" : "bg-secondary")">
-                                                    @(produto.Ativo ? "Ativo" : "Inativo")
+                                                <div>
+                                                    <div>@cliente.Cidade</div>
+                                                    <small class="text-muted">@cliente.Estado</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge @(cliente.TipoPessoa == "F" ? "bg-info" : "bg-warning")">
+                                                    @(cliente.TipoPessoa == "F" ? "Pessoa Física" : "Pessoa Jurídica")
                                                 </span>
                                             </td>
                                             <td>
+                                                <span class="badge @(cliente.Ativo ? "bg-success" : "bg-secondary")">
+                                                    @(cliente.Ativo ? "Ativo" : "Inativo")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">@cliente.DataCadastro.ToString("dd/MM/yyyy")</small>
+                                            </td>
+                                            <td>
                                                 <div class="btn-group btn-group-sm" role="group">
-                                                    <button class="btn btn-outline-primary" @onclick="() => EditarProduto(produto.Id)"
-                                                            title="Editar produto">
+                                                    <button class="btn btn-outline-primary" @onclick="() => EditarCliente(cliente.Id)"
+                                                            title="Editar cliente">
                                                         <i class="bi bi-pencil"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-info" @onclick="() => VisualizarProduto(produto.Id)"
+                                                    <button class="btn btn-outline-info" @onclick="() => VisualizarCliente(cliente.Id)"
                                                             title="Visualizar detalhes">
                                                         <i class="bi bi-eye"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-danger" @onclick="() => ConfirmarExclusao(produto)"
-                                                            title="Excluir produto">
+                                                    <button class="btn btn-outline-danger" @onclick="() => ConfirmarExclusao(cliente)"
+                                                            title="Excluir cliente">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
                                                 </div>
@@ -218,7 +215,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <span class="text-muted">
-                                        Mostrando @produtosFiltrados.Count de @produtos.Count produtos
+                                        Mostrando @clientesFiltrados.Count de @clientes.Count clientes
                                     </span>
                                 </div>
                                 <div>
@@ -246,7 +243,7 @@
 </div>
 
 <!-- Modal de Confirmação de Exclusão -->
-@if (produtoParaExcluir != null)
+@if (clienteParaExcluir != null)
 {
     <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5)" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
@@ -256,12 +253,12 @@
                     <button type="button" class="btn-close" @onclick="CancelarExclusao"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Tem certeza que deseja excluir o produto <strong>@produtoParaExcluir.Nome</strong>?</p>
-                    <p class="text-danger">Esta ação não pode ser desfeita.</p>
+                    <p>Tem certeza que deseja excluir o cliente <strong>@clienteParaExcluir.Nome</strong>?</p>
+                    <p class="text-danger">Esta ação não pode ser desfeita. Todas as vendas relacionadas serão mantidas.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CancelarExclusao">Cancelar</button>
-                    <button type="button" class="btn btn-danger" @onclick="ExcluirProduto">Excluir</button>
+                    <button type="button" class="btn btn-danger" @onclick="ExcluirCliente">Excluir</button>
                 </div>
             </div>
         </div>
@@ -269,137 +266,153 @@
 }
 
 @code {
-    private List<Produto> produtos = new();
-    private List<Produto> produtosFiltrados = new();
-    private List<string> categorias = new();
+    private List<Cliente> clientes = new();
+    private List<Cliente> clientesFiltrados = new();
+    private List<string> cidades = new();
     private string termoBusca = string.Empty;
-    private string filtroCategoria = string.Empty;
+    private string filtroCidade = string.Empty;
     private string ordenacao = "nome";
     private string filtroStatus = "todos";
-    private Produto? produtoParaExcluir = null;
+    private string filtroTipo = "todos";
+    private Cliente? clienteParaExcluir = null;
 
     protected override void OnInitialized()
     {
-        CarregarProdutos();
+        CarregarClientes();
     }
 
-    private void CarregarProdutos()
+    private void CarregarClientes()
     {
         // Dados de exemplo - em uma aplicação real, viria de uma API
-        produtos = new List<Produto>
+        clientes = new List<Cliente>
         {
-            new Produto { Id = 1, Codigo = "001", Nome = "Notebook Dell", PrecoCusto = 2000.00m, PrecoVenda = 2500.00m, Estoque = 5, EstoqueMinimo = 3, Categoria = "Informática", Ativo = true },
-            new Produto { Id = 2, Codigo = "002", Nome = "Mouse Sem Fio", PrecoCusto = 30.00m, PrecoVenda = 45.90m, Estoque = 20, EstoqueMinimo = 5, Categoria = "Informática", Ativo = true },
-            new Produto { Id = 3, Codigo = "003", Nome = "Teclado Mecânico", PrecoCusto = 150.00m, PrecoVenda = 199.90m, Estoque = 2, EstoqueMinimo = 5, Categoria = "Informática", Ativo = true },
-            new Produto { Id = 4, Codigo = "004", Nome = "Monitor 24\"", PrecoCusto = 700.00m, PrecoVenda = 899.90m, Estoque = 8, EstoqueMinimo = 2, Categoria = "Informática", Ativo = true },
-            new Produto { Id = 5, Codigo = "005", Nome = "Headphone Bluetooth", PrecoCusto = 120.00m, PrecoVenda = 159.90m, Estoque = 15, EstoqueMinimo = 5, Categoria = "Áudio", Ativo = true },
-            new Produto { Id = 6, Codigo = "006", Nome = "Webcam HD", PrecoCusto = 100.00m, PrecoVenda = 129.90m, Estoque = 0, EstoqueMinimo = 3, Categoria = "Informática", Ativo = false }
+            new Cliente { Id = 1, Nome = "João Silva", CPF = "123.456.789-00", Email = "joao@email.com", Telefone = "(11) 99999-9999", 
+                         Cidade = "São Paulo", Estado = "SP", TipoPessoa = "F", Ativo = true, DataCadastro = DateTime.Now.AddDays(-30) },
+            new Cliente { Id = 2, Nome = "Maria Santos", CPF = "987.654.321-00", Email = "maria@email.com", Telefone = "(11) 98888-8888", 
+                         Cidade = "Rio de Janeiro", Estado = "RJ", TipoPessoa = "F", Ativo = true, DataCadastro = DateTime.Now.AddDays(-15) },
+            new Cliente { Id = 3, Nome = "Empresa ABC Ltda", CNPJ = "12.345.678/0001-90", Email = "contato@empresaabc.com", Telefone = "(11) 3777-7777", 
+                         Cidade = "São Paulo", Estado = "SP", TipoPessoa = "J", Ativo = true, DataCadastro = DateTime.Now.AddDays(-10) },
+            new Cliente { Id = 4, Nome = "Carlos Oliveira", CPF = "111.222.333-44", Email = "carlos@email.com", Telefone = "(11) 97777-7777", 
+                         Cidade = "Belo Horizonte", Estado = "MG", TipoPessoa = "F", Ativo = false, DataCadastro = DateTime.Now.AddDays(-60) },
+            new Cliente { Id = 5, Nome = "Comércio XYZ ME", CNPJ = "98.765.432/0001-10", Email = "vendas@xyz.com", Telefone = "(11) 3666-6666", 
+                         Cidade = "Curitiba", Estado = "PR", TipoPessoa = "J", Ativo = true, DataCadastro = DateTime.Now.AddDays(-5) }
         };
 
-        categorias = produtos.Select(p => p.Categoria).Distinct().ToList();
-        FiltrarProdutos();
+        cidades = clientes.Select(c => c.Cidade).Distinct().ToList();
+        FiltrarClientes();
     }
 
-    private void FiltrarProdutos()
+    private void FiltrarClientes()
     {
-        produtosFiltrados = produtos;
+        clientesFiltrados = clientes;
 
         // Aplicar filtros
         if (!string.IsNullOrEmpty(termoBusca))
         {
-            produtosFiltrados = produtosFiltrados.Where(p =>
-                p.Nome.Contains(termoBusca, StringComparison.OrdinalIgnoreCase) ||
-                p.Codigo.Contains(termoBusca, StringComparison.OrdinalIgnoreCase) ||
-                p.Categoria.Contains(termoBusca, StringComparison.OrdinalIgnoreCase)
+            clientesFiltrados = clientesFiltrados.Where(c =>
+                c.Nome.Contains(termoBusca, StringComparison.OrdinalIgnoreCase) ||
+                c.CPF?.Contains(termoBusca, StringComparison.OrdinalIgnoreCase) == true ||
+                c.CNPJ?.Contains(termoBusca, StringComparison.OrdinalIgnoreCase) == true ||
+                c.Email.Contains(termoBusca, StringComparison.OrdinalIgnoreCase) ||
+                c.Telefone.Contains(termoBusca, StringComparison.OrdinalIgnoreCase)
             ).ToList();
         }
 
-        if (!string.IsNullOrEmpty(filtroCategoria))
+        if (!string.IsNullOrEmpty(filtroCidade))
         {
-            produtosFiltrados = produtosFiltrados.Where(p => p.Categoria == filtroCategoria).ToList();
+            clientesFiltrados = clientesFiltrados.Where(c => c.Cidade == filtroCidade).ToList();
         }
 
         if (filtroStatus != "todos")
         {
-            produtosFiltrados = produtosFiltrados.Where(p => p.Ativo == (filtroStatus == "ativos")).ToList();
+            clientesFiltrados = clientesFiltrados.Where(c => c.Ativo == (filtroStatus == "ativos")).ToList();
+        }
+
+        if (filtroTipo != "todos")
+        {
+            clientesFiltrados = clientesFiltrados.Where(c => c.TipoPessoa == filtroTipo).ToList();
         }
 
         // Aplicar ordenação
-        produtosFiltrados = ordenacao switch
+        clientesFiltrados = ordenacao switch
         {
-            "codigo" => produtosFiltrados.OrderBy(p => p.Codigo).ToList(),
-            "preco" => produtosFiltrados.OrderByDescending(p => p.PrecoVenda).ToList(),
-            "estoque" => produtosFiltrados.OrderBy(p => p.Estoque).ToList(),
-            _ => produtosFiltrados.OrderBy(p => p.Nome).ToList()
+            "dataCadastro" => clientesFiltrados.OrderByDescending(c => c.DataCadastro).ToList(),
+            "cidade" => clientesFiltrados.OrderBy(c => c.Cidade).ThenBy(c => c.Nome).ToList(),
+            _ => clientesFiltrados.OrderBy(c => c.Nome).ToList()
         };
     }
 
-    private void BuscarProdutos()
+    private void BuscarClientes()
     {
-        FiltrarProdutos();
+        FiltrarClientes();
     }
 
     private void LimparBusca()
     {
         termoBusca = string.Empty;
-        FiltrarProdutos();
+        FiltrarClientes();
     }
 
     private void FiltrarPorStatus(string status)
     {
         filtroStatus = status;
-        FiltrarProdutos();
+        FiltrarClientes();
+    }
+
+    private void FiltrarPorTipo(string tipo)
+    {
+        filtroTipo = tipo;
+        FiltrarClientes();
     }
 
     private void LimparFiltros()
     {
         termoBusca = string.Empty;
-        filtroCategoria = string.Empty;
+        filtroCidade = string.Empty;
         filtroStatus = "todos";
+        filtroTipo = "todos";
         ordenacao = "nome";
-        FiltrarProdutos();
+        FiltrarClientes();
     }
 
-    private string GetEstoqueClass(Produto produto)
+    private string FormatarDocumento(Cliente cliente)
     {
-        if (produto.Estoque == 0) return "text-danger fw-bold";
-        if (produto.Estoque <= produto.EstoqueMinimo) return "text-warning fw-bold";
-        return "text-success";
+        return cliente.TipoPessoa == "F" ? cliente.CPF : cliente.CNPJ;
     }
 
-    private void EditarProduto(int id)
+    private void EditarCliente(int id)
     {
-        Navigation.NavigateTo($"/produtos/editar/{id}");
+        Navigation.NavigateTo($"/clientes/editar/{id}");
     }
 
-    private void VisualizarProduto(int id)
+    private void VisualizarCliente(int id)
     {
-        Navigation.NavigateTo($"/produtos/detalhes/{id}");
+        Navigation.NavigateTo($"/clientes/detalhes/{id}");
     }
 
-    private void ConfirmarExclusao(Produto produto)
+    private void ConfirmarExclusao(Cliente cliente)
     {
-        produtoParaExcluir = produto;
+        clienteParaExcluir = cliente;
     }
 
     private void CancelarExclusao()
     {
-        produtoParaExcluir = null;
+        clienteParaExcluir = null;
     }
 
-    private void ExcluirProduto()
+    private void ExcluirCliente()
     {
-        if (produtoParaExcluir != null)
+        if (clienteParaExcluir != null)
         {
-            produtos.Remove(produtoParaExcluir);
-            produtoParaExcluir = null;
-            FiltrarProdutos();
+            clientes.Remove(clienteParaExcluir);
+            clienteParaExcluir = null;
+            FiltrarClientes();
         }
     }
 
     private void NavigateToCadastro()
     {
-        Navigation.NavigateTo("/produtos/cadastrar");
+        Navigation.NavigateTo("/clientes/cadastrar");
     }
 
     private void VoltarParaHome()
@@ -407,24 +420,18 @@
         Navigation.NavigateTo("/");
     }
 
-    public class EnumeradorStatus
-    {
-        public const string Ativos = "Ativos";
-        public const string Inativos = "Inativos";
-    }
-
-    public class Produto
+    public class Cliente
     {
         public int Id { get; set; }
-        public string Codigo { get; set; } = string.Empty;
         public string Nome { get; set; } = string.Empty;
-        public string? Descricao { get; set; }
-        public decimal PrecoCusto { get; set; }
-        public decimal PrecoVenda { get; set; }
-        public int Estoque { get; set; }
-        public int EstoqueMinimo { get; set; }
-        public string Categoria { get; set; } = string.Empty;
-        public bool Ativo { get; set; }
+        public string? CPF { get; set; }
+        public string? CNPJ { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string Telefone { get; set; } = string.Empty;
+        public string Cidade { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+        public string TipoPessoa { get; set; } = "F"; // F=Física, J=Jurídica
+        public bool Ativo { get; set; } = true;
         public DateTime DataCadastro { get; set; } = DateTime.Now;
     }
 }
@@ -434,13 +441,13 @@
         background-color: rgba(13, 110, 253, 0.05) !important;
         cursor: pointer;
     }
-
+    
     .bg-primary { background-color: #0d6efd !important; }
-
+    
     .btn-group .btn {
         border-radius: 0.25rem;
     }
-
+    
     .modal {
         background-color: rgba(0, 0, 0, 0.5);
     }

@@ -1,0 +1,570 @@
+﻿@page "/vendas"
+@using pdvApp.Helps
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Lista de Vendas - Sistema PDV</PageTitle>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row bg-primary text-white py-3 shadow">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <button class="btn btn-outline-light btn-sm me-2" @onclick="VoltarParaHome">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                    <h1 class="h3 mb-0 d-inline-block">
+                        <i class="bi bi-cart-check me-2"></i>Lista de Vendas
+                    </h1>
+                </div>
+                <div>
+                    <button class="btn btn-outline-light btn-sm me-2" @onclick="NavigateToNovaVenda">
+                        <i class="bi bi-plus-circle"></i> Nova Venda
+                    </button>
+                    <div class="btn-group">
+                        <button class="btn btn-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-filter"></i> Filtrar
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" @onclick="() => FiltrarPorPeriodo(Enumeradores.Hoje.ToString())">Hoje</a></li>
+                            <li><a class="dropdown-item" href="#" @onclick="() => FiltrarPorPeriodo(Enumeradores.Semana.ToString())">Esta Semana</a></li>
+                            <li><a class="dropdown-item" href="#" @onclick="() => FiltrarPorPeriodo(Enumeradores.Mes.ToString())">Este Mês</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" @onclick="() => FiltrarPorStatus(Enumeradores.Concluidas.ToString())">Concluídas</a></li>
+                            <li><a class="dropdown-item" href="#" @onclick="() => FiltrarPorStatus(Enumeradores.Canceladas.ToString())">Canceladas</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" @onclick="LimparFiltros">Todos</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros e Busca -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="Buscar por cliente, vendedor..."
+                                       @bind="termoBusca" @oninput="BuscarVendas" />
+                                <button class="btn btn-outline-secondary" type="button" @onclick="LimparBusca">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" class="form-control" @bind="dataInicio"
+                                   placeholder="Data início" />
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" class="form-control" @bind="dataFim"
+                                   placeholder="Data fim" />
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" @bind="filtroFormaPagamento">
+                                <option value="">Todas formas</option>
+                                <option value="Dinheiro">Dinheiro</option>
+                                <option value="Cartão Débito">Cartão Débito</option>
+                                <option value="Cartão Crédito">Cartão Crédito</option>
+                                <option value="PIX">PIX</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" @bind="ordenacao">
+                                <option value="data">Mais Recentes</option>
+                                <option value="valor">Maior Valor</option>
+                                <option value="antigas">Mais Antigas</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estatísticas Rápidas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 col-md-3">
+                            <div class="p-3">
+                                <h3 class="text-primary mb-0">@vendas.Count</h3>
+                                <p class="text-muted mb-0">Total de Vendas</p>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3">
+                                <h3 class="text-success mb-0">R$ @vendas.Where(v => v.Status == "Concluída").Sum(v => v.Total).ToString("N2")</h3>
+                                <p class="text-muted mb-0">Total Vendido</p>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3">
+                                <h3 class="text-info mb-0">R$ @vendas.Where(v => v.Status == "Concluída").Average(v => v.Total).ToString("N2")</h3>
+                                <p class="text-muted mb-0">Ticket Médio</p>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3">
+                                <h3 class="text-warning mb-0">@vendas.Count(v => v.Status == "Cancelada")</h3>
+                                <p class="text-muted mb-0">Vendas Canceladas</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Vendas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    @if (vendasFiltradas.Count == 0)
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-cart display-4 text-muted"></i>
+                            <h5 class="text-muted mt-3">Nenhuma venda encontrada</h5>
+                            <p class="text-muted">Tente ajustar os filtros ou realize uma nova venda.</p>
+                            <button class="btn btn-primary mt-2" @onclick="NavigateToNovaVenda">
+                                <i class="bi bi-plus-circle"></i> Realizar Primeira Venda
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Venda</th>
+                                        <th>Cliente</th>
+                                        <th>Itens</th>
+                                        <th>Valor</th>
+                                        <th>Pagamento</th>
+                                        <th>Data/Hora</th>
+                                        <th>Status</th>
+                                        <th width="100" class="text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var venda in vendasFiltradas)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-shrink-0">
+                                                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center"
+                                                             style="width: 40px; height: 40px;">
+                                                            <i class="bi bi-receipt text-muted"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-grow-1 ms-3">
+                                                        <h6 class="mb-0">#@venda.Id.ToString("D4")</h6>
+                                                        <small class="text-muted">@venda.Vendedor</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <div class="fw-bold">@venda.ClienteNome</div>
+                                                    <small class="text-muted">@venda.ClienteDocumento</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">
+                                                    @venda.QuantidadeItens item@(venda.QuantidadeItens != 1 ? "s" : "")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold text-success">R$ @venda.Total.ToString("N2")</span>
+                                                @if (venda.Desconto > 0)
+                                                {
+                                                    <br>
+                                                    <small class="text-muted">Desc: R$ @venda.Desconto.ToString("N2")</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge @GetBadgePagamentoClass(venda.FormaPagamento)">
+                                                    @venda.FormaPagamento
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <div>@venda.DataVenda.ToString("dd/MM/yyyy")</div>
+                                                    <small class="text-muted">@venda.DataVenda.ToString("HH:mm")</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge @GetStatusBadgeClass(venda.Status)">
+                                                    @venda.Status
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button class="btn btn-outline-info" @onclick="() => VisualizarVenda(venda.Id)"
+                                                            title="Visualizar venda">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-primary" @onclick="() => ImprimirCupom(venda.Id)"
+                                                            title="Imprimir cupom">
+                                                        <i class="bi bi-printer"></i>
+                                                    </button>
+                                                    @if (venda.Status == "Concluída")
+                                                    {
+                                                        <button class="btn btn-outline-danger" @onclick="() => ConfirmarCancelamento(venda)"
+                                                                title="Cancelar venda">
+                                                            <i class="bi bi-x-circle"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Resumo -->
+                        <div class="card-footer bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="text-muted">
+                                        Mostrando @vendasFiltradas.Count de @vendas.Count vendas
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="fw-bold text-success">
+                                        Total filtrado: R$ @vendasFiltradas.Where(v => v.Status == "Concluída").Sum(v => v.Total).ToString("N2")
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Cancelamento -->
+@if (vendaParaCancelar != null)
+{
+    <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5)" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Cancelamento</h5>
+                    <button type="button" class="btn-close" @onclick="CancelarCancelamento"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja cancelar a venda <strong>#@vendaParaCancelar.Id.ToString("D4")</strong>?</p>
+                    <p class="text-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Esta ação não pode ser desfeita. O estoque dos produtos será restaurado.
+                    </p>
+                    <div class="alert alert-warning">
+                        <strong>Detalhes da venda:</strong><br>
+                        Cliente: @vendaParaCancelar.ClienteNome<br>
+                        Valor: R$ @vendaParaCancelar.Total.ToString("N2")<br>
+                        Data: @vendaParaCancelar.DataVenda.ToString("dd/MM/yyyy HH:mm")
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelarCancelamento">Manter Venda</button>
+                    <button type="button" class="btn btn-danger" @onclick="CancelarVenda">
+                        <i class="bi bi-x-circle"></i> Cancelar Venda
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Venda> vendas = new();
+    private List<Venda> vendasFiltradas = new();
+    private string termoBusca = string.Empty;
+    private DateTime? dataInicio = DateTime.Today.AddDays(-7);
+    private DateTime? dataFim = DateTime.Today;
+    private string filtroFormaPagamento = string.Empty;
+    private string ordenacao = "data";
+    private string filtroStatus = "todos";
+    private Venda? vendaParaCancelar = null;
+
+    protected override void OnInitialized()
+    {
+        CarregarVendas();
+    }
+
+    private void CarregarVendas()
+    {
+        // Dados de exemplo - em uma aplicação real, viria de uma API
+        vendas = new List<Venda>
+        {
+            new Venda {
+                Id = 1,
+                ClienteNome = "João Silva",
+                ClienteDocumento = "123.456.789-00",
+                Vendedor = "Maria Santos",
+                QuantidadeItens = 3,
+                Total = 450.90m,
+                Desconto = 20.00m,
+                FormaPagamento = "Cartão Crédito",
+                DataVenda = DateTime.Now.AddHours(-2),
+                Status = "Concluída"
+            },
+            new Venda {
+                Id = 2,
+                ClienteNome = "Empresa ABC Ltda",
+                ClienteDocumento = "12.345.678/0001-90",
+                Vendedor = "Carlos Oliveira",
+                QuantidadeItens = 5,
+                Total = 1250.50m,
+                Desconto = 50.00m,
+                FormaPagamento = "PIX",
+                DataVenda = DateTime.Now.AddDays(-1),
+                Status = "Concluída"
+            },
+            new Venda {
+                Id = 3,
+                ClienteNome = "Ana Costa",
+                ClienteDocumento = "555.666.777-88",
+                Vendedor = "Pedro Almeida",
+                QuantidadeItens = 2,
+                Total = 189.90m,
+                Desconto = 0,
+                FormaPagamento = "Dinheiro",
+                DataVenda = DateTime.Now.AddDays(-3),
+                Status = "Concluída"
+            },
+            new Venda {
+                Id = 4,
+                ClienteNome = "Carlos Oliveira",
+                ClienteDocumento = "111.222.333-44",
+                Vendedor = "Maria Santos",
+                QuantidadeItens = 1,
+                Total = 299.90m,
+                Desconto = 0,
+                FormaPagamento = "Cartão Débito",
+                DataVenda = DateTime.Now.AddDays(-5),
+                Status = "Cancelada"
+            },
+            new Venda {
+                Id = 5,
+                ClienteNome = "Maria Santos",
+                ClienteDocumento = "987.654.321-00",
+                Vendedor = "João Silva",
+                QuantidadeItens = 4,
+                Total = 620.00m,
+                Desconto = 30.00m,
+                FormaPagamento = "Cartão Crédito",
+                DataVenda = DateTime.Now.AddDays(-7),
+                Status = "Concluída"
+            }
+        };
+
+        FiltrarVendas();
+    }
+
+    private void FiltrarVendas()
+    {
+        vendasFiltradas = vendas;
+
+        // Aplicar filtros
+        if (!string.IsNullOrEmpty(termoBusca))
+        {
+            vendasFiltradas = vendasFiltradas.Where(v =>
+                v.ClienteNome.Contains(termoBusca, StringComparison.OrdinalIgnoreCase) ||
+                v.Vendedor.Contains(termoBusca, StringComparison.OrdinalIgnoreCase) ||
+                v.ClienteDocumento.Contains(termoBusca, StringComparison.OrdinalIgnoreCase)
+            ).ToList();
+        }
+
+        if (dataInicio.HasValue)
+        {
+            vendasFiltradas = vendasFiltradas.Where(v => v.DataVenda.Date >= dataInicio.Value.Date).ToList();
+        }
+
+        if (dataFim.HasValue)
+        {
+            vendasFiltradas = vendasFiltradas.Where(v => v.DataVenda.Date <= dataFim.Value.Date).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(filtroFormaPagamento))
+        {
+            vendasFiltradas = vendasFiltradas.Where(v => v.FormaPagamento == filtroFormaPagamento).ToList();
+        }
+
+        if (filtroStatus != "todos")
+        {
+            vendasFiltradas = vendasFiltradas.Where(v => v.Status == (filtroStatus == "concluidas" ? "Concluída" : "Cancelada")).ToList();
+        }
+
+        // Aplicar ordenação
+        vendasFiltradas = ordenacao switch
+        {
+            "valor" => vendasFiltradas.OrderByDescending(v => v.Total).ToList(),
+            "antigas" => vendasFiltradas.OrderBy(v => v.DataVenda).ToList(),
+            _ => vendasFiltradas.OrderByDescending(v => v.DataVenda).ToList()
+        };
+    }
+
+    private void LimparFiltros()
+    {
+        termoBusca = string.Empty;
+        dataInicio = DateTime.Today.AddDays(-7); // Volta para última semana
+        dataFim = DateTime.Today;
+        filtroFormaPagamento = string.Empty;
+        filtroStatus = "todos";
+        ordenacao = "data";
+        FiltrarVendas();
+    }
+
+    private void BuscarVendas()
+    {
+        FiltrarVendas();
+    }
+
+    private void LimparBusca()
+    {
+        termoBusca = string.Empty;
+        dataInicio = DateTime.Today.AddDays(-7);
+        dataFim = DateTime.Today;
+        filtroFormaPagamento = string.Empty;
+        filtroStatus = "todos";
+        ordenacao = "data";
+        FiltrarVendas();
+    }
+
+    private void FiltrarPorPeriodo(string periodo)
+    {
+        var hoje = DateTime.Today;
+        dataInicio = periodo switch
+        {
+            "hoje" => hoje,
+            "semana" => hoje.AddDays(-(int)hoje.DayOfWeek),
+            "mes" => new DateTime(hoje.Year, hoje.Month, 1),
+            _ => null
+        };
+        dataFim = DateTime.Today;
+        FiltrarVendas();
+    }
+
+    private void FiltrarPorStatus(string status)
+    {
+        filtroStatus = status;
+        FiltrarVendas();
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status == "Concluída" ? "bg-success" : "bg-danger";
+    }
+
+    private string GetBadgePagamentoClass(string formaPagamento)
+    {
+        return formaPagamento switch
+        {
+            "Dinheiro" => "bg-success",
+            "PIX" => "bg-info",
+            "Cartão Crédito" => "bg-warning",
+            "Cartão Débito" => "bg-primary",
+            _ => "bg-secondary"
+        };
+    }
+
+    private void VisualizarVenda(int id)
+    {
+        Navigation.NavigateTo($"/vendas/detalhes/{id}");
+    }
+
+    private void ImprimirCupom(int id)
+    {
+        // Simular impressão do cupom
+        var venda = vendas.FirstOrDefault(v => v.Id == id);
+        if (venda != null)
+        {
+            Console.WriteLine($"Imprimindo cupom da venda #{venda.Id}");
+        }
+    }
+
+    private void ConfirmarCancelamento(Venda venda)
+    {
+        vendaParaCancelar = venda;
+    }
+
+    private void CancelarCancelamento()
+    {
+        vendaParaCancelar = null;
+    }
+
+    private void CancelarVenda()
+    {
+        if (vendaParaCancelar != null)
+        {
+            var venda = vendas.FirstOrDefault(v => v.Id == vendaParaCancelar.Id);
+            if (venda != null)
+            {
+                venda.Status = "Cancelada";
+                vendaParaCancelar = null;
+                FiltrarVendas();
+            }
+        }
+    }
+
+    private void NavigateToNovaVenda()
+    {
+        Navigation.NavigateTo("/vendas/nova");
+    }
+
+    private void VoltarParaHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    public class Venda
+    {
+        public int Id { get; set; }
+        public string ClienteNome { get; set; } = string.Empty;
+        public string ClienteDocumento { get; set; } = string.Empty;
+        public string Vendedor { get; set; } = string.Empty;
+        public int QuantidadeItens { get; set; }
+        public decimal Total { get; set; }
+        public decimal Desconto { get; set; }
+        public string FormaPagamento { get; set; } = string.Empty;
+        public DateTime DataVenda { get; set; } = DateTime.Now;
+        public string Status { get; set; } = "Concluída";
+    }
+}
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.05) !important;
+        cursor: pointer;
+    }
+
+    .bg-primary {
+        background-color: #0d6efd !important;
+    }
+
+    .btn-group .btn {
+        border-radius: 0.25rem;
+    }
+
+    .modal {
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .badge {
+        font-size: 0.75em;
+    }
+</style>

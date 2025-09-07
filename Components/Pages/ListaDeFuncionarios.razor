@@ -1,0 +1,532 @@
+﻿@page "/funcionarios"
+@using pdvApp.Helps
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Lista de Funcionários - Sistema PDV</PageTitle>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row bg-primary text-white py-3 shadow">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <button class="btn btn-outline-light btn-sm me-2" @onclick="VoltarParaHome">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                    <h1 class="h3 mb-0 d-inline-block">
+                        <i class="bi bi-person-badge me-2"></i>Lista de Funcionários
+                    </h1>
+                </div>
+                <div>
+                    <button class="btn btn-outline-light btn-sm me-2" @onclick="NavigateToCadastro">
+                        <i class="bi bi-person-plus"></i> Novo Funcionário
+                    </button>
+                    <div class="btn-group">
+                        <button class="btn btn-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-filter"></i> Filtrar
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" @onclick="() => FiltrarPorStatus(Enumeradores.Ativos.ToString())">Ativos</a></li>
+                            <li><a class="dropdown-item" href="#" @onclick="() => FiltrarPorStatus(Enumeradores.Inativos.ToString())">Inativos</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" @onclick="() => FiltrarPorCargo(Enumeradores.Admin.ToString())">Vendedores</a></li>
+                            <li><a class="dropdown-item" href="#" @onclick="() => FiltrarPorCargo(Enumeradores.Caixa.ToString())">Caixas</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" @onclick="LimparFiltros">Todos</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros e Busca -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="Buscar por nome, CPF, cargo..."
+                                       @bind="termoBusca" @oninput="BuscarFuncionarios" />
+                                <button class="btn btn-outline-secondary" type="button" @onclick="LimparBusca">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" @bind="filtroDepartamento">
+                                <option value="">Todos departamentos</option>
+                                @foreach (var departamento in departamentos)
+                                {
+                                    <option value="@departamento">@departamento</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" @bind="ordenacao">
+                                <option value="nome">Ordenar por Nome</option>
+                                <option value="cargo">Ordenar por Cargo</option>
+                                <option value="dataAdmissao">Ordenar por Admissão</option>
+                                <option value="salario">Ordenar por Salário</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estatísticas Rápidas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 col-md-3">
+                            <div class="p-3">
+                                <h3 class="text-primary mb-0">@funcionarios.Count</h3>
+                                <p class="text-muted mb-0">Total de Funcionários</p>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3">
+                                <h3 class="text-success mb-0">@funcionarios.Count(f => f.Ativo)</h3>
+                                <p class="text-muted mb-0">Funcionários Ativos</p>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3">
+                                <h3 class="text-info mb-0">@funcionarios.Count(f => f.Cargo == "Vendedor")</h3>
+                                <p class="text-muted mb-0">Vendedores</p>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3">
+                                <h3 class="text-warning mb-0">R$ @funcionarios.Average(f => f.Salario).ToString("N2")</h3>
+                                <p class="text-muted mb-0">Salário Médio</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Funcionários -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    @if (funcionariosFiltrados.Count == 0)
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-person-badge display-4 text-muted"></i>
+                            <h5 class="text-muted mt-3">Nenhum funcionário encontrado</h5>
+                            <p class="text-muted">Tente ajustar os filtros ou cadastre um novo funcionário.</p>
+                            <button class="btn btn-primary mt-2" @onclick="NavigateToCadastro">
+                                <i class="bi bi-person-plus"></i> Cadastrar Primeiro Funcionário
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Funcionário</th>
+                                        <th>Cargo/Departamento</th>
+                                        <th>Contato</th>
+                                        <th>Salário</th>
+                                        <th>Admissão</th>
+                                        <th>Status</th>
+                                        <th width="120" class="text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var funcionario in funcionariosFiltrados)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-shrink-0">
+                                                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center"
+                                                             style="width: 40px; height: 40px;">
+                                                            <i class="bi bi-person text-muted"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-grow-1 ms-3">
+                                                        <h6 class="mb-0">@funcionario.Nome</h6>
+                                                        <small class="text-muted">@funcionario.CPF</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <div class="fw-bold">@funcionario.Cargo</div>
+                                                    <small class="text-muted">@funcionario.Departamento</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <div>@funcionario.Email</div>
+                                                    <small class="text-muted">@funcionario.Telefone</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold text-success">R$ @funcionario.Salario.ToString("N2")</span>
+                                                <br>
+                                                <small class="text-muted">@funcionario.TipoContrato</small>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <div>@funcionario.DataAdmissao?.ToString("dd/MM/yyyy")</div>
+                                                    <small class="text-muted">@CalcularTempoEmpresa(funcionario.DataAdmissao)</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge @(funcionario.Ativo ? "bg-success" : "bg-secondary")">
+                                                    @(funcionario.Ativo ? "Ativo" : "Inativo")
+                                                </span>
+                                                <br>
+                                                <small class="text-muted">@funcionario.NivelAcesso</small>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button class="btn btn-outline-primary" @onclick="() => EditarFuncionario(funcionario.Id)"
+                                                            title="Editar funcionário">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-info" @onclick="() => VisualizarFuncionario(funcionario.Id)"
+                                                            title="Visualizar detalhes">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" @onclick="() => ConfirmarExclusao(funcionario)"
+                                                            title="Excluir funcionário">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Paginação -->
+                        <div class="card-footer bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="text-muted">
+                                        Mostrando @funcionariosFiltrados.Count de @funcionarios.Count funcionários
+                                    </span>
+                                </div>
+                                <div>
+                                    <nav>
+                                        <ul class="pagination mb-0">
+                                            <li class="page-item disabled">
+                                                <a class="page-link" href="#">Anterior</a>
+                                            </li>
+                                            <li class="page-item active">
+                                                <a class="page-link" href="#">1</a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="#">Próxima</a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+@if (funcionarioParaExcluir != null)
+{
+    <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5)" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Exclusão</h5>
+                    <button type="button" class="btn-close" @onclick="CancelarExclusao"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir o funcionário <strong>@funcionarioParaExcluir.Nome</strong>?</p>
+                    <p class="text-danger">Esta ação não pode ser desfeita. O acesso ao sistema será revogado.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelarExclusao">Cancelar</button>
+                    <button type="button" class="btn btn-danger" @onclick="ExcluirFuncionario">Excluir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Funcionario> funcionarios = new();
+    private List<Funcionario> funcionariosFiltrados = new();
+    private List<string> departamentos = new();
+    private List<string> cargos = new();
+    private string termoBusca = string.Empty;
+    private string filtroDepartamento = string.Empty;
+    private string ordenacao = "nome";
+    private string filtroStatus = "todos";
+    private string filtroCargo = "todos";
+    private Funcionario? funcionarioParaExcluir = null;
+
+    protected override void OnInitialized()
+    {
+        CarregarFuncionarios();
+    }
+
+    private void CarregarFuncionarios()
+    {
+        // Dados de exemplo - em uma aplicação real, viria de uma API
+        funcionarios = new List<Funcionario>
+        {
+            new Funcionario {
+                Id = 1,
+                Nome = "João Silva",
+                CPF = "123.456.789-00",
+                Email = "joao@empresa.com",
+                Telefone = "(11) 99999-9999",
+                Cargo = "Vendedor",
+                Departamento = "Vendas",
+                Salario = 2500.00m,
+                TipoContrato = "CLT",
+                DataAdmissao = DateTime.Now.AddMonths(-12),
+                NivelAcesso = "Operador",
+                Ativo = true
+            },
+            new Funcionario {
+                Id = 2,
+                Nome = "Maria Santos",
+                CPF = "987.654.321-00",
+                Email = "maria@empresa.com",
+                Telefone = "(11) 98888-8888",
+                Cargo = "Caixa",
+                Departamento = "Financeiro",
+                Salario = 2200.00m,
+                TipoContrato = "CLT",
+                DataAdmissao = DateTime.Now.AddMonths(-6),
+                NivelAcesso = "Operador",
+                Ativo = true
+            },
+            new Funcionario {
+                Id = 3,
+                Nome = "Carlos Oliveira",
+                CPF = "111.222.333-44",
+                Email = "carlos@empresa.com",
+                Telefone = "(11) 97777-7777",
+                Cargo = "Gerente",
+                Departamento = "Vendas",
+                Salario = 4500.00m,
+                TipoContrato = "CLT",
+                DataAdmissao = DateTime.Now.AddMonths(-24),
+                NivelAcesso = "Gerente",
+                Ativo = true
+            },
+            new Funcionario {
+                Id = 4,
+                Nome = "Ana Costa",
+                CPF = "555.666.777-88",
+                Email = "ana@empresa.com",
+                Telefone = "(11) 96666-6666",
+                Cargo = "Vendedor",
+                Departamento = "Vendas",
+                Salario = 2300.00m,
+                TipoContrato = "CLT",
+                DataAdmissao = DateTime.Now.AddMonths(-3),
+                NivelAcesso = "Operador",
+                Ativo = false
+            },
+            new Funcionario {
+                Id = 5,
+                Nome = "Pedro Almeida",
+                CPF = "999.888.777-66",
+                Email = "pedro@empresa.com",
+                Telefone = "(11) 95555-5555",
+                Cargo = "Supervisor",
+                Departamento = "Operações",
+                Salario = 3500.00m,
+                TipoContrato = "CLT",
+                DataAdmissao = DateTime.Now.AddMonths(-18),
+                NivelAcesso = "Supervisor",
+                Ativo = true
+            }
+        };
+
+        departamentos = funcionarios.Select(f => f.Departamento).Distinct().ToList();
+        cargos = funcionarios.Select(f => f.Cargo).Distinct().ToList();
+        FiltrarFuncionarios();
+    }
+
+    private void FiltrarFuncionarios()
+    {
+        funcionariosFiltrados = funcionarios;
+
+        // Aplicar filtros
+        if (!string.IsNullOrEmpty(termoBusca))
+        {
+            funcionariosFiltrados = funcionariosFiltrados.Where(f =>
+                f.Nome.Contains(termoBusca, StringComparison.OrdinalIgnoreCase) ||
+                f.CPF.Contains(termoBusca, StringComparison.OrdinalIgnoreCase) ||
+                f.Cargo.Contains(termoBusca, StringComparison.OrdinalIgnoreCase) ||
+                f.Email.Contains(termoBusca, StringComparison.OrdinalIgnoreCase)
+            ).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(filtroDepartamento))
+        {
+            funcionariosFiltrados = funcionariosFiltrados.Where(f => f.Departamento == filtroDepartamento).ToList();
+        }
+
+        if (filtroStatus != "todos")
+        {
+            funcionariosFiltrados = funcionariosFiltrados.Where(f => f.Ativo == (filtroStatus == "ativos")).ToList();
+        }
+
+        if (filtroCargo != "todos")
+        {
+            funcionariosFiltrados = funcionariosFiltrados.Where(f => f.Cargo == filtroCargo).ToList();
+        }
+
+        // Aplicar ordenação
+        funcionariosFiltrados = ordenacao switch
+        {
+            "cargo" => funcionariosFiltrados.OrderBy(f => f.Cargo).ThenBy(f => f.Nome).ToList(),
+            "dataAdmissao" => funcionariosFiltrados.OrderByDescending(f => f.DataAdmissao).ToList(),
+            "salario" => funcionariosFiltrados.OrderByDescending(f => f.Salario).ToList(),
+            _ => funcionariosFiltrados.OrderBy(f => f.Nome).ToList()
+        };
+    }
+
+    private void BuscarFuncionarios()
+    {
+        FiltrarFuncionarios();
+    }
+
+    private void LimparBusca()
+    {
+        termoBusca = string.Empty;
+        FiltrarFuncionarios();
+    }
+
+    private void FiltrarPorStatus(string status)
+    {
+        filtroStatus = status;
+        FiltrarFuncionarios();
+    }
+
+    private void FiltrarPorCargo(string cargo)
+    {
+        filtroCargo = cargo;
+        FiltrarFuncionarios();
+    }
+
+    private void LimparFiltros()
+    {
+        termoBusca = string.Empty;
+        filtroDepartamento = string.Empty;
+        filtroStatus = "todos";
+        filtroCargo = "todos";
+        ordenacao = "nome";
+        FiltrarFuncionarios();
+    }
+
+    private string CalcularTempoEmpresa(DateTime? dataAdmissao)
+    {
+        if (!dataAdmissao.HasValue) return "N/A";
+
+        var tempo = DateTime.Now - dataAdmissao.Value;
+        if (tempo.TotalDays < 30) return "Novo";
+        if (tempo.TotalDays < 365) return $"{(int)tempo.TotalDays / 30} meses";
+
+        var anos = (int)tempo.TotalDays / 365;
+        return $"{anos} ano{(anos > 1 ? "s" : "")}";
+    }
+
+    private void EditarFuncionario(int id)
+    {
+        Navigation.NavigateTo($"/funcionarios/editar/{id}");
+    }
+
+    private void VisualizarFuncionario(int id)
+    {
+        Navigation.NavigateTo($"/funcionarios/detalhes/{id}");
+    }
+
+    private void ConfirmarExclusao(Funcionario funcionario)
+    {
+        funcionarioParaExcluir = funcionario;
+    }
+
+    private void CancelarExclusao()
+    {
+        funcionarioParaExcluir = null;
+    }
+
+    private void ExcluirFuncionario()
+    {
+        if (funcionarioParaExcluir != null)
+        {
+            funcionarios.Remove(funcionarioParaExcluir);
+            funcionarioParaExcluir = null;
+            FiltrarFuncionarios();
+        }
+    }
+
+    private void NavigateToCadastro()
+    {
+        Navigation.NavigateTo("/funcionarios/cadastrar");
+    }
+
+    private void VoltarParaHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    public class Funcionario
+    {
+        public int Id { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string CPF { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Telefone { get; set; } = string.Empty;
+        public string Cargo { get; set; } = string.Empty;
+        public string Departamento { get; set; } = string.Empty;
+        public decimal Salario { get; set; }
+        public string TipoContrato { get; set; } = "CLT";
+        public DateTime? DataAdmissao { get; set; }
+        public string NivelAcesso { get; set; } = "Operador";
+        public bool Ativo { get; set; } = true;
+    }
+}
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.05) !important;
+        cursor: pointer;
+    }
+
+    .bg-primary {
+        background-color: #0d6efd !important;
+    }
+
+    .btn-group .btn {
+        border-radius: 0.25rem;
+    }
+
+    .modal {
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+</style>
